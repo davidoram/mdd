@@ -36,6 +36,7 @@ Resources:
 -   <https://github.com/jacebrowning/doorstop>
 -   <https://github.com/rjeczalik/fs>
 -   <https://github.com/russross/blackfriday>
+- https://blog.rapid7.com/2016/08/04/build-a-simple-cli-tool-with-golang/
 
  
 
@@ -55,9 +56,13 @@ Create a new markdown document database, inside a github project:
 $ cd my-project
 $ ls
 
-$ mdd init
-$ ls
-mdd_docs
+$ mdd init my-project
+$ ls -a
+.mdd
+
+$ cat .mdd
+mdd-project: my-project
+...
 ```
 
 This will create the `mdd_docs` directory
@@ -90,11 +95,14 @@ When editing the file, do not modify any of the lines that look like this. They
 contain the metadata and are managed by the `mdd` command.
 
 ```
-*[mdd-date-time]: 2018-04-27
-*[mdd-author]: Fred
-*[mdd-child]: dec-AB0034
-*[mdd-tag]: front-end
-*[mdd-tag]: security
+<!-- mdd
+mdd-date-time: 2018-04-27
+mdd-author: Fred
+mdd-child: dec-AB0034
+mdd-tag: front-end
+mdd-tag: security
+...
+-->
 
 ```
 
@@ -218,7 +226,7 @@ index.html
 
 ```
  
-<!--
+<!-- mdd
 *[mdd-tag]: security
 -->
  
