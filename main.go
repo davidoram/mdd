@@ -1,12 +1,19 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 )
+
+type Project struct {
+	HomePath string
+}
 
 func main() {
 
@@ -98,14 +105,81 @@ The arguments are:
 			initCommand.PrintDefaults()
 			os.Exit(0)
 		}
-		err = runInitCommand(dirPtr, projectPtr)
+		p := Project{HomePath: *dirPtr}
+		err = p.init(projectPtr)
 	}
 	if err != nil {
+		log.Print(err)
 		os.Exit(1)
 	}
 }
 
-func runInitCommand(dir, project *string) error {
-	log.Printf("dir: %s, project %s", *dir, *project)
+func (p *Project) ReadProjectFile() (map[string]string, error) {
+	db := map[string]string{}
+	dbPath := path.Join(p.HomePath, ".mdd")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return db, nil
+	}
+
+	f, err := os.Open(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// The regex to match
+	// key: value one
+	// in our file
+	re := regexp.MustCompile("^[[:space:]]*([[:word:]]-)+:[[:space:]]+([[:word:]] -)+[[:space:]]*$")
+	r := bufio.NewReader(f)
+	s, e := r.ReadString('\n')
+	for e == nil {
+		matches := re.FindAllString(s, -1)
+		if len(matches) == 0 {
+			db[matches[0]] = matches[1]
+		}
+		s, e = r.ReadString('\n')
+	}
+	return db, nil
+}
+
+func (p *Project) WriteProjectFile(db map[string]string) error {
+	dbPath := path.Join(p.HomePath, ".mdd")
+	f, err := os.Create(dbPath)
+	if err != nil {
+		return err
+	}
+	f.WriteString("# mdd project db file. Do not edit\n")
+	for k, v := range db {
+		_, err := f.WriteString(fmt.Sprintf("%s: %s\n", k, v))
+		if err != nil {
+			return err
+		}
+	}
+	err = f.Sync()
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (p *Project) init(name *string) error {
+
+	// Create the HomePath directory if it doesnt exist
+	if _, err := os.Stat(p.HomePath); os.IsNotExist(err) {
+		if err := os.MkdirAll(p.HomePath, os.ModePerm); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	// Write the project file, error if it already exists
+	dbFile := path.Join(p.HomePath, ".mdd")
+	_, err := os.Stat(dbFile)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("Wont overwrite existing project at '%s'", dbFile)
+	}
+	return p.WriteProjectFile(map[string]string{"project": *name})
+
 }
