@@ -4,21 +4,46 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
+
+	"github.com/GeertJohan/go.rice"
 )
 
+type Template struct {
+	Filename string
+	Contents []string
+}
+
 type Project struct {
-	HomePath string
+	HomePath     string
+	TemplatePath string
+	DataPath     string
+	PublishPath  string
+	Templates    []Template
+}
+
+const (
+	RootDirectory = ".mdd"
+	ProjectDbFile = "project.data"
+)
+
+var box *rice.Box
+
+func init() {
+	box = rice.MustFindBox("templates")
 }
 
 func main() {
 
 	// Subcommands
 	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
+	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -48,6 +73,7 @@ Usage:
 The commands are:
 
 	init        initialise a mdd repository
+	templates   list the templates available for use
 `
 
 		fmt.Println(helptext)
@@ -60,8 +86,8 @@ The commands are:
 	switch os.Args[1] {
 	case "init":
 		initCommand.Parse(os.Args[2:])
-	// case "tmpl":
-	// 	templateCommand.Parse(os.Args[2:])
+	case "templates":
+		tmplCommand.Parse(os.Args[2:])
 	// case "new":
 	// 	newCommand.Parse(os.Args[2:])
 	// case "link":
@@ -105,18 +131,165 @@ The arguments are:
 			initCommand.PrintDefaults()
 			os.Exit(0)
 		}
-		p := Project{HomePath: *dirPtr}
-		err = p.init(projectPtr)
+		_, err = NewProject(dirPtr, projectPtr)
+	} else if tmplCommand.Parsed() {
+		// Asked for help
+		if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+			helptext := `
+mdd templates lists the templates available
+
+Usage:
+
+	mdd templates
+`
+			fmt.Println(helptext)
+			os.Exit(0)
+		}
+		p, err := FindProjectBelowCwd()
+		if err != nil {
+			log.Println("%s", err)
+			os.Exit(1)
+		}
+		for _, t := range p.Templates {
+			fmt.Println("%s: %v", t.Filename, t.Contents)
+		}
+
 	}
+
+	// Exit non zero on errrr
 	if err != nil {
 		log.Print(err)
 		os.Exit(1)
 	}
 }
 
+func NewTemplate(path string) (Template, error) {
+	t := Template{Filename: path}
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return t, err
+	}
+	t.Contents = strings.Split(string(content), "\n")
+	return t, nil
+}
+
+// FindProjectBelowCwd `walk`s the directory tree from '.' looking for the '.mdd' directory
+func FindProjectBelowCwd() (Project, error) {
+
+	p := Project{}
+
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if info.IsDir() && info.Name() == RootDirectory {
+			p.HomePath = path
+		}
+		return nil
+	})
+	if err != nil {
+		return p, err
+	}
+
+	p.TemplatePath = path.Join(p.HomePath, "templates")
+	p.DataPath = path.Join(p.HomePath, "data")
+	p.PublishPath = path.Join(p.HomePath, "publish")
+
+	err = filepath.Walk(p.TemplatePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("Ignore failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if info.IsDir() {
+			return filepath.SkipDir
+		}
+		tmpl, err := NewTemplate(path)
+		if err != nil {
+			log.Printf("Ignoring template at path %q: %v\n", path, err)
+		} else {
+			p.Templates = append(p.Templates, tmpl)
+		}
+		return nil
+	})
+	if err != nil {
+		return p, err
+	}
+
+	return p, err
+}
+
+func NewProject(projectDir, name *string) (Project, error) {
+
+	p := Project{}
+
+	// Create the projectDir directory if it doesnt exist
+	if _, err := os.Stat(*projectDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(p.HomePath, os.ModePerm); err != nil {
+			return p, err
+		}
+	} else if err != nil {
+		return p, err
+	}
+
+	// Write the mdd project directory, error if it already exists
+	homePath := path.Join(p.HomePath, RootDirectory)
+	_, err := os.Stat(homePath)
+	if !os.IsNotExist(err) {
+		return p, fmt.Errorf("Directory already exists: '%s', aborting", homePath)
+	}
+	p.HomePath = homePath
+	p.TemplatePath = path.Join(p.HomePath, "templates")
+	p.DataPath = path.Join(p.HomePath, "data")
+	p.PublishPath = path.Join(p.HomePath, "publish")
+
+	// Create our project database file
+	if err = p.WriteProjectFile(map[string]string{"project": *name}); err != nil {
+		return p, err
+	}
+
+	// Create directories for templates, data & publish
+	if err := os.MkdirAll(p.TemplatePath, os.ModePerm); err != nil {
+		return p, err
+	}
+	if err := os.MkdirAll(p.DataPath, os.ModePerm); err != nil {
+		return p, err
+	}
+	if err := os.MkdirAll(p.PublishPath, os.ModePerm); err != nil {
+		return p, err
+	}
+
+	// Save a copy of all the templates into RootDirectory
+	err = box.Walk("templates", func(pth string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("failure accessing a path inside box %q: %v\n", pth, err)
+			return err
+		}
+		if !info.IsDir() {
+			// read the whole file at once
+			b, err := ioutil.ReadFile(pth)
+			if err != nil {
+				return err
+			}
+
+			// write the whole body at once
+			err = ioutil.WriteFile(path.Join(p.TemplatePath, pth), b, 0644)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err == nil {
+
+	}
+	return p, err
+}
+
 func (p *Project) ReadProjectFile() (map[string]string, error) {
 	db := map[string]string{}
-	dbPath := path.Join(p.HomePath, ".mdd")
+	dbPath := path.Join(p.HomePath, RootDirectory)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return db, nil
 	}
@@ -144,7 +317,7 @@ func (p *Project) ReadProjectFile() (map[string]string, error) {
 }
 
 func (p *Project) WriteProjectFile(db map[string]string) error {
-	dbPath := path.Join(p.HomePath, ".mdd")
+	dbPath := path.Join(p.HomePath, ProjectDbFile)
 	f, err := os.Create(dbPath)
 	if err != nil {
 		return err
@@ -161,25 +334,4 @@ func (p *Project) WriteProjectFile(db map[string]string) error {
 		return err
 	}
 	return nil
-}
-
-func (p *Project) init(name *string) error {
-
-	// Create the HomePath directory if it doesnt exist
-	if _, err := os.Stat(p.HomePath); os.IsNotExist(err) {
-		if err := os.MkdirAll(p.HomePath, os.ModePerm); err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-
-	// Write the project file, error if it already exists
-	dbFile := path.Join(p.HomePath, ".mdd")
-	_, err := os.Stat(dbFile)
-	if !os.IsNotExist(err) {
-		return fmt.Errorf("Wont overwrite existing project at '%s'", dbFile)
-	}
-	return p.WriteProjectFile(map[string]string{"project": *name})
-
 }

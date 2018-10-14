@@ -37,9 +37,26 @@ Resources:
 -   <https://github.com/rjeczalik/fs>
 -   <https://github.com/russross/blackfriday>
 - https://blog.rapid7.com/2016/08/04/build-a-simple-cli-tool-with-golang/
+- http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions
 
  
+File structure
+=========
 
+```
+project\
+        .mdd\
+             mdd.data
+             templates\
+                       template1.md
+                       template2.md
+                       ...
+             data\
+                  template1-AAA-00001.md
+                  template3-ZYV-00543.md
+                  ....
+             publish\
+```
  
 
 Interface
@@ -69,7 +86,7 @@ This will create the `mdd_docs` directory
 
 List the templates we have at our disposal:
 
-```$ mdd tmpl
+```$ mdd templates
 req     Requirements
 tst     Test
 mtg     Meeting minutes
