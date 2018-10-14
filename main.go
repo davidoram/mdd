@@ -147,11 +147,11 @@ Usage:
 		}
 		p, err := FindProjectBelowCwd()
 		if err != nil {
-			log.Println("%s", err)
+			log.Println(err)
 			os.Exit(1)
 		}
 		for _, t := range p.Templates {
-			fmt.Println("%s: %v", t.Filename, t.Contents)
+			log.Println("%s: %v", t.Filename, t.Contents)
 		}
 
 	}
@@ -221,69 +221,73 @@ func FindProjectBelowCwd() (Project, error) {
 
 func NewProject(projectDir, name *string) (Project, error) {
 
-	p := Project{}
+	p := Project{HomePath: *projectDir}
 
-	// Create the projectDir directory if it doesnt exist
-	if _, err := os.Stat(*projectDir); os.IsNotExist(err) {
+	// Create the '.mdd' project directory, error if it already exists
+	_, err := os.Stat(p.HomePath)
+	if !os.IsNotExist(err) {
+		return p, fmt.Errorf("project directory '%s' alredy exists, aborting", p.HomePath)
+	} else if os.IsNotExist(err) {
+		log.Printf("Creating dir: '%s'\n", p.HomePath)
 		if err := os.MkdirAll(p.HomePath, os.ModePerm); err != nil {
+			log.Printf("Error creating dir: '%s', %v\n", p.HomePath, err)
 			return p, err
 		}
 	} else if err != nil {
 		return p, err
 	}
 
-	// Write the mdd project directory, error if it already exists
-	homePath := path.Join(p.HomePath, RootDirectory)
-	_, err := os.Stat(homePath)
-	if !os.IsNotExist(err) {
-		return p, fmt.Errorf("Directory already exists: '%s', aborting", homePath)
-	}
-	p.HomePath = homePath
 	p.TemplatePath = path.Join(p.HomePath, "templates")
 	p.DataPath = path.Join(p.HomePath, "data")
 	p.PublishPath = path.Join(p.HomePath, "publish")
 
 	// Create our project database file
-	if err = p.WriteProjectFile(map[string]string{"project": *name}); err != nil {
+	log.Printf("Writing project database file")
+	if err := p.WriteProjectFile(map[string]string{"project": *name}); err != nil {
+		log.Printf("Error writing project file: '%v'\n", err)
 		return p, err
 	}
 
 	// Create directories for templates, data & publish
+	log.Printf("Creating sub-directories")
 	if err := os.MkdirAll(p.TemplatePath, os.ModePerm); err != nil {
+		log.Printf("Error creating dir: '%s', %v\n", p.TemplatePath, err)
 		return p, err
 	}
 	if err := os.MkdirAll(p.DataPath, os.ModePerm); err != nil {
+		log.Printf("Error creating dir: '%s', %v\n", p.DataPath, err)
 		return p, err
 	}
 	if err := os.MkdirAll(p.PublishPath, os.ModePerm); err != nil {
+		log.Printf("Error creating dir: '%s', %v\n", p.PublishPath, err)
 		return p, err
 	}
 
 	// Save a copy of all the templates into RootDirectory
-	err = box.Walk("templates", func(pth string, info os.FileInfo, err error) error {
+	log.Printf("Copying templates")
+	err = box.Walk(".", func(pth string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("failure accessing a path inside box %q: %v\n", pth, err)
 			return err
 		}
 		if !info.IsDir() {
 			// read the whole file at once
-			b, err := ioutil.ReadFile(pth)
+			b, err := box.Bytes(pth)
 			if err != nil {
+				log.Printf("Error Reading template: '%s' from box, %v\n", pth, err)
 				return err
 			}
 
 			// write the whole body at once
-			err = ioutil.WriteFile(path.Join(p.TemplatePath, pth), b, 0644)
+			tmplPath := path.Join(p.TemplatePath, pth)
+			err = ioutil.WriteFile(tmplPath, b, 0644)
 			if err != nil {
+				log.Printf("Error writing template: '%s' to path '%s', %v\n", pth, tmplPath, err)
 				return err
 			}
 		}
 		return nil
 	})
-
-	if err == nil {
-
-	}
 	return p, err
 }
 
