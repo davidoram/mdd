@@ -221,10 +221,20 @@ func FindProjectBelowCwd() (Project, error) {
 
 func NewProject(projectDir, name *string) (Project, error) {
 
-	p := Project{HomePath: *projectDir}
+	// HomePath is projectdir/.mdd
+	p := Project{HomePath: path.Join(*projectDir, RootDirectory)}
 
-	// Create the '.mdd' project directory, error if it already exists
-	_, err := os.Stat(p.HomePath)
+	// Check that projectDir exists
+	stat, err := os.Stat(*projectDir)
+	if os.IsNotExist(err) {
+		return p, fmt.Errorf("no such directory '%s', aborting", *projectDir)
+	}
+	if !stat.IsDir() {
+		return p, fmt.Errorf("expect a directory not a file: '%s', aborting", *projectDir)
+	}
+
+	// Create the HomePath directory, error if it already exists
+	_, err = os.Stat(p.HomePath)
 	if !os.IsNotExist(err) {
 		return p, fmt.Errorf("project directory '%s' alredy exists, aborting", p.HomePath)
 	} else if os.IsNotExist(err) {
@@ -263,7 +273,7 @@ func NewProject(projectDir, name *string) (Project, error) {
 		return p, err
 	}
 
-	// Save a copy of all the templates into RootDirectory
+	// Save a copy of all the templates
 	log.Printf("Copying templates")
 	err = box.Walk(".", func(pth string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -293,7 +303,7 @@ func NewProject(projectDir, name *string) (Project, error) {
 
 func (p *Project) ReadProjectFile() (map[string]string, error) {
 	db := map[string]string{}
-	dbPath := path.Join(p.HomePath, RootDirectory)
+	dbPath := path.Join(p.HomePath, ProjectDbFile)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return db, nil
 	}
