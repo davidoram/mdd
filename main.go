@@ -16,8 +16,10 @@ import (
 )
 
 type Template struct {
-	Filename string
-	Contents []string
+	Filename    string
+	Shortcut    string
+	Contents    []string
+	Description string
 }
 
 type Project struct {
@@ -34,9 +36,11 @@ const (
 )
 
 var box *rice.Box
+var templateDescriptionRegex *regexp.Regexp
 
 func init() {
 	box = rice.MustFindBox("templates")
+	templateDescriptionRegex = regexp.MustCompile("^#(.+)$")
 }
 
 func main() {
@@ -150,8 +154,11 @@ Usage:
 			log.Println(err)
 			os.Exit(1)
 		}
+		if len(p.Templates) == 0 {
+			log.Printf("Project %s, has no templates", p.HomePath)
+		}
 		for _, t := range p.Templates {
-			log.Println("%s: %v", t.Filename, t.Contents)
+			log.Printf("%6s: %s", t.Shortcut, t.Description)
 		}
 
 	}
@@ -165,11 +172,28 @@ Usage:
 
 func NewTemplate(path string) (Template, error) {
 	t := Template{Filename: path}
+
+	// Shortcut is the Base minus extension
+	base := filepath.Base(path)
+	ext := filepath.Ext(base)
+	t.Shortcut = base[0 : len(base)-len(ext)]
+
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return t, err
 	}
 	t.Contents = strings.Split(string(content), "\n")
+
+	// First non-empty line is the description
+	re := regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
+
+	for _, l := range t.Contents {
+		matches := re.FindStringSubmatch(l)
+		if len(matches) > 1 {
+			t.Description = matches[1]
+			break
+		}
+	}
 	return t, nil
 }
 
@@ -177,18 +201,20 @@ func NewTemplate(path string) (Template, error) {
 func FindProjectBelowCwd() (Project, error) {
 
 	p := Project{}
-
+	//log.Printf("Looking for project ...")
 	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			log.Printf("error accessing a path %q: %v\n", path, err)
 			return err
 		}
 		if info.IsDir() && info.Name() == RootDirectory {
 			p.HomePath = path
+			log.Printf("Found project at '%s'", path)
+			return filepath.SkipDir
 		}
 		return nil
 	})
-	if err != nil {
+	if err != nil && p.HomePath != "" {
 		return p, err
 	}
 
@@ -202,7 +228,7 @@ func FindProjectBelowCwd() (Project, error) {
 			return err
 		}
 		if info.IsDir() {
-			return filepath.SkipDir
+			return nil
 		}
 		tmpl, err := NewTemplate(path)
 		if err != nil {
