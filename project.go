@@ -13,10 +13,18 @@ import (
 	"github.com/GeertJohan/go.rice"
 )
 
+// Project contains the details about an mdd project
+//
+// ./tmp
+// └── .mdd							<- HomePath
+//     ├── documents		<- DocumentPath : Documents live in here
+//     ├── project.data <- A textual database containing project meadata
+//     ├── publish			<- PublishPath: Publish the documents as an HTML website here
+//     └── templates		<- TemplatePath: All the template files available to this project
 type Project struct {
 	HomePath     string
 	TemplatePath string
-	DataPath     string
+	DocumentPath string
 	PublishPath  string
 	Templates    []Template
 }
@@ -26,7 +34,10 @@ const (
 	ProjectDbFile = "project.data"
 )
 
-var box *rice.Box
+var (
+	box       *rice.Box
+	fileRegex regexp.Regexp
+)
 
 func init() {
 	box = rice.MustFindBox("templates")
@@ -61,7 +72,7 @@ func NewProject(projectDir, name *string) (Project, error) {
 	}
 
 	p.TemplatePath = path.Join(p.HomePath, "templates")
-	p.DataPath = path.Join(p.HomePath, "data")
+	p.DocumentPath = path.Join(p.HomePath, "documents")
 	p.PublishPath = path.Join(p.HomePath, "publish")
 
 	// Create our project database file
@@ -77,8 +88,8 @@ func NewProject(projectDir, name *string) (Project, error) {
 		log.Printf("Error creating dir: '%s', %v\n", p.TemplatePath, err)
 		return p, err
 	}
-	if err := os.MkdirAll(p.DataPath, os.ModePerm); err != nil {
-		log.Printf("Error creating dir: '%s', %v\n", p.DataPath, err)
+	if err := os.MkdirAll(p.DocumentPath, os.ModePerm); err != nil {
+		log.Printf("Error creating dir: '%s', %v\n", p.DocumentPath, err)
 		return p, err
 	}
 	if err := os.MkdirAll(p.PublishPath, os.ModePerm); err != nil {
@@ -162,7 +173,7 @@ func ReadProject(homePath string) (Project, error) {
 
 	p := Project{HomePath: homePath}
 	p.TemplatePath = path.Join(p.HomePath, "templates")
-	p.DataPath = path.Join(p.HomePath, "data")
+	p.DocumentPath = path.Join(p.HomePath, "documents")
 	p.PublishPath = path.Join(p.HomePath, "publish")
 
 	err := filepath.Walk(p.TemplatePath, func(path string, info os.FileInfo, err error) error {

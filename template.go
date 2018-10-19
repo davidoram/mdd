@@ -8,16 +8,16 @@ import (
 )
 
 type Template struct {
-	Filename    string
-	Shortcut    string
-	Contents    []string
-	Description string
+	Filename string
+	Shortcut string
+	Contents []string
+	Title    string
 }
 
-var templateDescriptionRegex *regexp.Regexp
+var templateDesc *regexp.Regexp
 
 func init() {
-	templateDescriptionRegex = regexp.MustCompile("^#(.+)$")
+	templateDesc = regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
 
 }
 
@@ -35,13 +35,11 @@ func NewTemplate(path string) (Template, error) {
 	}
 	t.Contents = strings.Split(string(content), "\n")
 
-	// First non-empty line is the description
-	re := regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
-
+	// First line that matches the regex, is the description
 	for _, l := range t.Contents {
-		matches := re.FindStringSubmatch(l)
+		matches := templateDesc.FindStringSubmatch(l)
 		if len(matches) > 1 {
-			t.Description = matches[1]
+			t.Title = matches[1]
 			break
 		}
 	}

@@ -8,6 +8,22 @@ import (
 	"path/filepath"
 )
 
+const (
+	helptext = `
+mdd is a tool for managing markdown system documentation
+
+Usage:
+
+	mdd <command> [arguments]
+
+The commands are:
+
+	init        initialise a mdd repository
+	templates   list the templates available for use
+	new         add a new document based on a template
+`
+)
+
 func init() {
 	// Remove the Date/Time from log messages
 	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
@@ -18,6 +34,7 @@ func main() {
 	// Subcommands
 	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
+	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -37,22 +54,10 @@ func main() {
 	// os.Arg[0] is the main command
 	// os.Arg[1] will be the subcommand
 	if len(os.Args) < 2 {
-		helptext := `
-mdd is a tool for managing markdown system documentation
-
-Usage:
-
-	mdd <command> [arguments]
-
-The commands are:
-
-	init        initialise a mdd repository
-	templates   list the templates available for use
-`
-
 		fmt.Println(helptext)
 		os.Exit(1)
 	}
+
 	// Switch on the subcommand
 	// Parse the flags for appropriate FlagSet
 	// FlagSet.Parse() requires a set of arguments to parse as input
@@ -60,10 +65,14 @@ The commands are:
 	switch os.Args[1] {
 	case "init":
 		initCommand.Parse(os.Args[2:])
+		err = doInit(initCommand, dirPtr, projectPtr)
 	case "templates":
 		tmplCommand.Parse(os.Args[2:])
-	// case "new":
-	// 	newCommand.Parse(os.Args[2:])
+		err = doTemplates(tmplCommand)
+	case "new":
+		newCommand.Parse(os.Args[2:])
+		err = doNew(newCommand)
+
 	// case "link":
 	// 	linkCommand.Parse(os.Args[2:])
 	// case "unlink":
@@ -83,16 +92,21 @@ The commands are:
 	// case "publish":
 	// 	publishCommand.Parse(os.Args[2:])
 	default:
-		flag.PrintDefaults()
+		log.Printf("Unknown command '%s'", os.Args[1])
+		fmt.Println(helptext)
 		os.Exit(1)
 	}
 
-	// Check which subcommand was Parsed using the FlagSet.Parsed() function. Handle each case accordingly.
-	// FlagSet.Parse() will evaluate to false if no flags were parsed (i.e. the user did not provide any flags)
-	if initCommand.Parsed() {
-		// Asked for help
-		if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-			helptext := `
+	// Exit non zero on error
+	if err != nil {
+		log.Print(err)
+		os.Exit(1)
+	}
+
+}
+
+func doInit(flags *flag.FlagSet, dirPtr, projectPtr *string) error {
+	helptext := `
 mdd init creates a new mdd document repository
 
 Usage:
@@ -101,41 +115,92 @@ Usage:
 
 The arguments are:
 `
-			fmt.Println(helptext)
-			initCommand.PrintDefaults()
-			os.Exit(0)
-		}
-		_, err = NewProject(dirPtr, projectPtr)
-	} else if tmplCommand.Parsed() {
-		// Asked for help
-		if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-			helptext := `
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		log.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+	_, err := NewProject(dirPtr, projectPtr)
+	return err
+}
+
+func doTemplates(flags *flag.FlagSet) error {
+	helptext := `
 mdd templates lists the templates available
 
 Usage:
 
 	mdd templates
 `
-			fmt.Println(helptext)
-			os.Exit(0)
-		}
-		p, err := FindProjectBelowCwd()
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		if len(p.Templates) == 0 {
-			log.Printf("Project %s, has no templates", p.HomePath)
-		}
-		for _, t := range p.Templates {
-			log.Printf("%6s: %s", t.Shortcut, t.Description)
-		}
-
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
-	// Exit non zero on errrr
+	// Asked for help
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		return nil
+	}
+	p, err := FindProjectBelowCwd()
 	if err != nil {
-		log.Print(err)
-		os.Exit(1)
+		return err
 	}
+	if len(p.Templates) == 0 {
+		log.Printf("Project %s, has no templates", p.HomePath)
+	}
+	for _, t := range p.Templates {
+		log.Printf("%6s: %s", t.Shortcut, t.Title)
+	}
+	return nil
+}
+
+func doNew(flagset *flag.FlagSet) error {
+	helptext := `
+mdd new creates a new document from a template
+
+Usage:
+
+	mdd new template [title]
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flagset.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		return nil
+	}
+	// Missing template shortcut
+	if len(os.Args[2:]) == 0 {
+		return fmt.Errorf("Missing 'template shortcut' argument")
+	}
+	shortcut := os.Args[2:][0]
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+	title := ""
+	if len(os.Args[3:]) > 0 {
+		title = os.Args[3:][0]
+	}
+	for _, t := range p.Templates {
+		if shortcut == t.Shortcut {
+			doc, err := p.NewDocument(&t, title)
+			if err != nil {
+				return err
+			}
+			log.Printf("%s", doc.Filename)
+			return nil
+		}
+	}
+	return fmt.Errorf("No such template: '%s'", shortcut)
 }

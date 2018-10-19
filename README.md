@@ -99,12 +99,12 @@ Create a new document from a template:
 
 
 ```$ mdd new req "User login"
-mdd_docs/req/req-AAA0001
+mdd_docs/req/req-e2c-0001.md
 # Will open the file if $EDITOR set
 ```
 
-The `AAA` is a  prefix that is generated from the `${USER}` environment variable
-to minimize clashes with multiple users adding records concurrently
+The `e2c` is a  prefix that is generated from the operating system username
+to minimize clashes with multiple users adding documents concurrently
 
  
 
