@@ -338,7 +338,6 @@ The arguments are:
 	if err = pdoc.AddChild(cdoc); err == nil {
 		err = pdoc.WriteDocument()
 	}
-	log.Printf("OK %+v", pdoc)
 	return nil
 
 }

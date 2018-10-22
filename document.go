@@ -99,21 +99,21 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 
 	// First line that matches the regex, is the description
 	inMeta := false
-	for i, l := range contents {
+	for _, l := range contents {
 		if inMeta {
 			if metaEndRegex.MatchString(l) {
-				log.Printf("%d end meta", i)
+				// log.Printf("%d end meta", i)
 				inMeta = false
 			} else {
-				log.Printf("%d in meta", i)
+				// log.Printf("%d in meta", i)
 				d.parseMetadata(l)
 			}
 		} else {
 			if metaStartRegex.MatchString(l) {
-				log.Printf("%d start meta", i)
+				// log.Printf("%d start meta", i)
 				inMeta = true
 			} else {
-				log.Printf("%d content", i)
+				// log.Printf("%d content", i)
 				d.contents = append(d.contents, l)
 			}
 		}
