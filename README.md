@@ -257,6 +257,8 @@ index.html
 ```
  
 <!-- mdd
-*[mdd-tag]: security
+mdd-tag:security
+mdd-tag:logging
+mdd-child:tst-SFS0056
 -->
  

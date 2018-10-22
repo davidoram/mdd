@@ -61,7 +61,7 @@ func NewProject(projectDir, name *string) (Project, error) {
 	// Create the HomePath directory, error if it already exists
 	_, err = os.Stat(p.HomePath)
 	if !os.IsNotExist(err) {
-		return p, fmt.Errorf("project directory '%s' alredy exists, aborting", p.HomePath)
+		return p, fmt.Errorf("project directory '%s' already exists, aborting", p.HomePath)
 	} else if os.IsNotExist(err) {
 		log.Printf("Creating dir: '%s'\n", p.HomePath)
 		if err := os.MkdirAll(p.HomePath, os.ModePerm); err != nil {

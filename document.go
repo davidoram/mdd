@@ -13,30 +13,56 @@ import (
 	"strings"
 )
 
+const (
+	MetadataSeparator = ":"
+	MetadataChild     = "mdd-child"
+	MetadataTag       = "mdd-tag"
+	MetadataStart     = "<!-- mdd"
+	MetadataEnd       = "-->"
+)
+
 type Document struct {
 	Filename string
 	Template *Template
 	Title    string
+
+	// Metadata
+	Children map[string]bool
+	Tags     map[string]bool
+
+	// File content - metadata stripped out
+	contents []string
 }
 
 var (
-	titleRegex    *regexp.Regexp
-	filenameRegex *regexp.Regexp
+	titleRegex     *regexp.Regexp
+	filenameRegex  *regexp.Regexp
+	metaStartRegex *regexp.Regexp
+	metaEndRegex   *regexp.Regexp
 )
 
 func init() {
 	titleRegex = regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
 	filenameRegex = regexp.MustCompile("^(\\w+)-(\\w+)-(\\d+)\\.md$")
+	metaStartRegex = regexp.MustCompile("^\\s*<!-- mdd\\s*$")
+	metaEndRegex = regexp.MustCompile("^\\s*-->\\s*$")
 }
 
 func (d *Document) BaseFilename() string {
 	return filepath.Base(d.Filename)
 }
 
+func (d *Document) AddChild(child *Document) error {
+	d.Children[child.BaseFilename()] = true
+	return nil
+}
+
 func (p *Project) ReadDocument(path string) (*Document, error) {
 
 	d := Document{
 		Filename: path,
+		Children: make(map[string]bool),
+		Tags:     make(map[string]bool),
 	}
 
 	base := filepath.Base(path)
@@ -55,11 +81,12 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		return nil, fmt.Errorf("No template for shortcode '%s'", matches[0])
 	}
 
-	content, err := ioutil.ReadFile(path)
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return &d, err
 	}
-	contents := strings.Split(string(content), "\n")
+	content := string(bytes)
+	contents := strings.Split(content, LineBreak)
 
 	// First line that matches the regex, is the description
 	for _, l := range contents {
@@ -69,8 +96,99 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 			break
 		}
 	}
-	return &d, nil
 
+	// First line that matches the regex, is the description
+	inMeta := false
+	for i, l := range contents {
+		if inMeta {
+			if metaEndRegex.MatchString(l) {
+				log.Printf("%d end meta", i)
+				inMeta = false
+			} else {
+				log.Printf("%d in meta", i)
+				d.parseMetadata(l)
+			}
+		} else {
+			if metaStartRegex.MatchString(l) {
+				log.Printf("%d start meta", i)
+				inMeta = true
+			} else {
+				log.Printf("%d content", i)
+				d.contents = append(d.contents, l)
+			}
+		}
+	}
+	return &d, nil
+}
+
+func (d *Document) WriteDocument() error {
+	file, err := os.OpenFile(d.Filename, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write the main content
+	for _, l := range d.contents {
+		_, err := file.Write([]byte(l))
+		if err != nil {
+			return err
+		}
+		_, err = file.Write([]byte(LineBreak))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Append the metadata
+	for _, l := range d.metadataForWrite() {
+		_, err := file.Write([]byte(l))
+		if err != nil {
+			return err
+		}
+		_, err = file.Write([]byte(LineBreak))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Return the metadata as an array suitable for writing out to the file
+func (d *Document) metadataForWrite() []string {
+	meta := []string{MetadataStart}
+
+	for key := range d.Children {
+		meta = append(meta, fmt.Sprintf("%s: %s", MetadataChild, key))
+	}
+	for key := range d.Tags {
+		meta = append(meta, fmt.Sprintf("%s: %s", MetadataTag, key))
+	}
+	meta = append(meta, MetadataEnd)
+	return meta
+}
+
+// line has one of the forms:
+// mdd-child:document-name
+// mdd-tag:value
+func (d *Document) parseMetadata(line string) error {
+
+	meta := strings.Split(line, MetadataSeparator)
+	if len(meta) != 2 {
+		return fmt.Errorf("Expected 2 values, found %d from metadata '%s'", len(meta), line)
+	}
+
+	key := strings.TrimSpace(meta[0])
+	value := strings.TrimSpace(meta[1])
+	switch key {
+	case MetadataChild:
+		d.Children[value] = true
+	case MetadataTag:
+		d.Tags[value] = true
+	default:
+		return fmt.Errorf("Unrecognised metadata tag '%s'", key)
+	}
+	return nil
 }
 
 func (p *Project) NewDocument(t *Template, title string) (Document, error) {

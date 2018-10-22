@@ -40,6 +40,7 @@ func main() {
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
+	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -86,6 +87,13 @@ func main() {
 	case "ls":
 		lsCommand.Parse(os.Args[2:])
 		err = doLs(lsCommand)
+	case "link":
+		if len(os.Args) >= 3 {
+			linkCommand.Parse(os.Args[2:])
+			err = doLink(linkCommand)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd link help'")
+		}
 
 	// case "link":
 	// 	linkCommand.Parse(os.Args[2:])
@@ -259,6 +267,80 @@ The arguments are:
 
 	}
 	return nil
+}
+
+func doLink(flags *flag.FlagSet) error {
+	helptext := `
+mdd link links a parent and child document
+
+Usage:
+
+	mdd link parent child
+
+parent is the parent documents filename.
+child is the child documents filename.
+
+The arguments are:
+`
+	// log.Printf("%v %d", os.Args, len(os.Args))
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// Missing template shortcut
+	if len(os.Args[2:]) != 2 {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return fmt.Errorf("Missing arguments")
+	}
+
+	parent := os.Args[2:][0]
+	if !strings.HasSuffix(parent, ".md") {
+		parent = fmt.Sprintf("%s.md", parent)
+	}
+	child := os.Args[2:][1]
+	if !strings.HasSuffix(child, ".md") {
+		child = fmt.Sprintf("%s.md", child)
+	}
+	if parent == child {
+		return fmt.Errorf("Cant link to self")
+	}
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+
+	var pdoc *Document
+	var cdoc *Document
+	for _, d := range p.Documents {
+		if pdoc == nil && d.BaseFilename() == parent {
+			pdoc = d
+		}
+		if cdoc == nil && d.BaseFilename() == child {
+			cdoc = d
+		}
+	}
+	if pdoc == nil {
+		return fmt.Errorf("Cant find parent '%s'", parent)
+	}
+	if cdoc == nil {
+		return fmt.Errorf("Cant find child '%s'", child)
+	}
+	// log.Printf("OK %s -> %s", pdoc.BaseFilename(), cdoc.BaseFilename())
+	if err = pdoc.AddChild(cdoc); err == nil {
+		err = pdoc.WriteDocument()
+	}
+	log.Printf("OK %+v", pdoc)
+	return nil
+
 }
 
 func execEditor(filename string) error {
