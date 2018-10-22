@@ -41,7 +41,9 @@ func (p *Project) NewDocument(t *Template, title string) (Document, error) {
 	}
 	defer f.Close()
 
-	replacedTitle := false
+	// Don't replace the title unless a new one supplied
+	replacedTitle := false || title == ""
+
 	for _, l := range t.Contents {
 		if !replacedTitle {
 			if titleRegex.MatchString(l) {

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 )
 
 const (
@@ -50,6 +53,8 @@ func main() {
 	f = initCommand.Lookup("p")
 	f.DefValue = fmt.Sprintf("The current directory name ie: '%s'", base)
 
+	editPtr := newCommand.Bool("e", false, "Open the new file in your $EDITOR")
+
 	// Verify that a subcommand has been provided
 	// os.Arg[0] is the main command
 	// os.Arg[1] will be the subcommand
@@ -70,8 +75,12 @@ func main() {
 		tmplCommand.Parse(os.Args[2:])
 		err = doTemplates(tmplCommand)
 	case "new":
-		newCommand.Parse(os.Args[2:])
-		err = doNew(newCommand)
+		if len(os.Args) >= 3 {
+			newCommand.Parse(os.Args[3:])
+			err = doNew(newCommand, editPtr)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd new help'")
+		}
 
 	// case "link":
 	// 	linkCommand.Parse(os.Args[2:])
@@ -146,6 +155,7 @@ Usage:
 	// Asked for help
 	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
 		fmt.Println(helptext)
+		flags.PrintDefaults()
 		return nil
 	}
 	p, err := FindProjectBelowCwd()
@@ -161,24 +171,31 @@ Usage:
 	return nil
 }
 
-func doNew(flagset *flag.FlagSet) error {
+func doNew(flags *flag.FlagSet, openEditor *bool) error {
 	helptext := `
 mdd new creates a new document from a template
 
 Usage:
 
-	mdd new template [title]
+	mdd new template [arguments] [title]
+
+template is the template to use for the new document.
+title is an optional title for the document.
+
+The arguments are:
 `
+	log.Printf("flag.,Args: %+v %d", flags.Args(), len(flags.Args()))
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flagset.Parsed() {
+	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
 	}
-
 	// Asked for help?
 	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
 		fmt.Println(helptext)
+		flags.PrintDefaults()
 		return nil
 	}
+
 	// Missing template shortcut
 	if len(os.Args[2:]) == 0 {
 		return fmt.Errorf("Missing 'template shortcut' argument")
@@ -189,8 +206,8 @@ Usage:
 		return err
 	}
 	title := ""
-	if len(os.Args[3:]) > 0 {
-		title = os.Args[3:][0]
+	if len(flags.Args()) > 0 {
+		title = flags.Args()[0]
 	}
 	for _, t := range p.Templates {
 		if shortcut == t.Shortcut {
@@ -199,8 +216,34 @@ Usage:
 				return err
 			}
 			log.Printf("%s", doc.Filename)
+			if *openEditor {
+				return execEditor(doc.Filename)
+			}
 			return nil
 		}
 	}
 	return fmt.Errorf("No such template: '%s'", shortcut)
+}
+
+func execEditor(filename string) error {
+	val := ""
+	val, ok := os.LookupEnv("EDITOR")
+	if !ok {
+		return fmt.Errorf("Envar EDITOR not set")
+	}
+
+	// EDITOR miight be set to a value like '/path/to/editor --some-flags', so we
+	// need to parse the binary from the args
+	editorArgs := strings.Split(val, " ")
+	binary, err := exec.LookPath(editorArgs[0])
+	if err != nil {
+		return err
+	}
+
+	args := []string{}
+	args = append(args, editorArgs[1:]...)
+	args = append(args, filename)
+
+	err = syscall.Exec(binary, args, os.Environ())
+	return err
 }
