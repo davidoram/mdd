@@ -86,7 +86,8 @@ This will create the `mdd_docs` directory
 
 List the templates we have at our disposal:
 
-```$ mdd templates
+```
+$ mdd templates
 req     Requirements
 tst     Test
 mtg     Meeting minutes
@@ -98,14 +99,15 @@ Create a new document from a template:
 
 
 
-```$ mdd new req "User login"
+```
+$ mdd new req "User login"
 mdd_docs/req/req-e2c-0001.md
 # Will open the file if $EDITOR set
 ```
 
-The `e2c` is a  prefix that is generated from the operating system username
-to minimize clashes with multiple users adding documents concurrently
-
+The `e2c` is an (example) prefix that is generated from the users operating system username
+to help eliminate a filename clash when multiple users are adding documents concurrently to the
+same repository.
  
 
 When editing the file, do not modify any of the lines that look like this. They
@@ -127,6 +129,17 @@ mdd-tag: security
 Add the `mdd_docs/*` files to your git repo as you would for any other
 documentation.
 
+
+To list documents with their title
+
+```
+$ mdd ls
+req-e2c-0001.md    User login
+req-e2c-0002.md    Audit trail
+tst-e2c-0013.md    Test user login
+...
+
+```
  
 
 To link two documents, for example if we have a decision `dec-GHF0035` relating

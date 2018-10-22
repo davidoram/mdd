@@ -24,6 +24,7 @@ The commands are:
 	init        initialise a mdd repository
 	templates   list the templates available for use
 	new         add a new document based on a template
+	ls					list documents created
 `
 )
 
@@ -38,6 +39,7 @@ func main() {
 	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
+	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -81,6 +83,9 @@ func main() {
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd new help'")
 		}
+	case "ls":
+		lsCommand.Parse(os.Args[2:])
+		err = doLs(lsCommand)
 
 	// case "link":
 	// 	linkCommand.Parse(os.Args[2:])
@@ -184,7 +189,6 @@ title is an optional title for the document.
 
 The arguments are:
 `
-	log.Printf("flag.,Args: %+v %d", flags.Args(), len(flags.Args()))
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
 	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
@@ -223,6 +227,38 @@ The arguments are:
 		}
 	}
 	return fmt.Errorf("No such template: '%s'", shortcut)
+}
+
+func doLs(flags *flag.FlagSet) error {
+	helptext := `
+mdd ls lists all the documents created
+
+Usage:
+
+	mdd ls
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+	for _, d := range p.Documents {
+		log.Printf("%-15s  %-30s", d.BaseFilename(), d.Title)
+
+	}
+	return nil
 }
 
 func execEditor(filename string) error {

@@ -27,6 +27,7 @@ type Project struct {
 	DocumentPath string
 	PublishPath  string
 	Templates    []Template
+	Documents    []*Document
 }
 
 const (
@@ -176,6 +177,7 @@ func ReadProject(homePath string) (Project, error) {
 	p.DocumentPath = path.Join(p.HomePath, "documents")
 	p.PublishPath = path.Join(p.HomePath, "publish")
 
+	// Read the templates
 	err := filepath.Walk(p.TemplatePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("Ignore failure accessing a path %q: %v\n", path, err)
@@ -184,11 +186,32 @@ func ReadProject(homePath string) (Project, error) {
 		if info.IsDir() {
 			return nil
 		}
-		tmpl, err := NewTemplate(path)
+		tmpl, err := ReadTemplate(path)
 		if err != nil {
 			log.Printf("Ignoring template at path %q: %v\n", path, err)
 		} else {
 			p.Templates = append(p.Templates, tmpl)
+		}
+		return nil
+	})
+	if err != nil {
+		return p, err
+	}
+
+	// Read the documents
+	err = filepath.Walk(p.DocumentPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("Ignore failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		doc, err := p.ReadDocument(path)
+		if err != nil {
+			log.Printf("Ignoring document at path %q: %v\n", path, err)
+		} else {
+			p.Documents = append(p.Documents, doc)
 		}
 		return nil
 	})

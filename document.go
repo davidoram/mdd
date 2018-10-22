@@ -4,11 +4,13 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 type Document struct {
@@ -25,6 +27,50 @@ var (
 func init() {
 	titleRegex = regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
 	filenameRegex = regexp.MustCompile("^(\\w+)-(\\w+)-(\\d+)\\.md$")
+}
+
+func (d *Document) BaseFilename() string {
+	return filepath.Base(d.Filename)
+}
+
+func (p *Project) ReadDocument(path string) (*Document, error) {
+
+	d := Document{
+		Filename: path,
+	}
+
+	base := filepath.Base(path)
+	matches := filenameRegex.FindStringSubmatch(base)
+	if len(matches) != 4 {
+		return nil, fmt.Errorf("Filename '%s', doesnt match regex", base)
+	}
+
+	for _, t := range p.Templates {
+		if t.Shortcut == matches[1] {
+			d.Template = &t
+			break
+		}
+	}
+	if d.Template == nil {
+		return nil, fmt.Errorf("No template for shortcode '%s'", matches[0])
+	}
+
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return &d, err
+	}
+	contents := strings.Split(string(content), "\n")
+
+	// First line that matches the regex, is the description
+	for _, l := range contents {
+		matches := titleRegex.FindStringSubmatch(l)
+		if len(matches) > 1 {
+			d.Title = matches[1]
+			break
+		}
+	}
+	return &d, nil
+
 }
 
 func (p *Project) NewDocument(t *Template, title string) (Document, error) {

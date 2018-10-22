@@ -21,7 +21,7 @@ func init() {
 
 }
 
-func NewTemplate(path string) (Template, error) {
+func ReadTemplate(path string) (Template, error) {
 	t := Template{Filename: path}
 
 	// Shortcut is the Base minus extension
