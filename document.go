@@ -30,8 +30,8 @@ type Document struct {
 	Children map[string]bool
 	Tags     map[string]bool
 
-	// File content - metadata stripped out
-	contents []string
+	// File contents
+	raw []byte
 }
 
 var (
@@ -81,11 +81,12 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		return nil, fmt.Errorf("No template for shortcode '%s'", matches[0])
 	}
 
-	bytes, err := ioutil.ReadFile(path)
+	var err error
+	d.raw, err = ioutil.ReadFile(path)
 	if err != nil {
 		return &d, err
 	}
-	content := string(bytes)
+	content := string(d.raw)
 	contents := strings.Split(content, LineBreak)
 
 	// First line that matches the regex, is the description
@@ -112,9 +113,6 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 			if metaStartRegex.MatchString(l) {
 				// log.Printf("%d start meta", i)
 				inMeta = true
-			} else {
-				// log.Printf("%d content", i)
-				d.contents = append(d.contents, l)
 			}
 		}
 	}
@@ -128,29 +126,21 @@ func (d *Document) WriteDocument() error {
 	}
 	defer file.Close()
 
-	// Write the main content
-	for _, l := range d.contents {
-		_, err := file.Write([]byte(l))
-		if err != nil {
-			return err
-		}
-		_, err = file.Write([]byte(LineBreak))
-		if err != nil {
-			return err
-		}
+	s := string(d.raw)
+
+	// Construct the new metadata
+	meta := strings.Join(d.metadataForWrite(), LineBreak)
+
+	// Replace the old metadata
+	r := regexp.MustCompile("(?ms)^<!-- mdd$(.*)^-->$")
+	s = r.ReplaceAllString(s, meta)
+
+	// Write the file
+	_, err = file.WriteString(s)
+	if err != nil {
+		return err
 	}
 
-	// Append the metadata
-	for _, l := range d.metadataForWrite() {
-		_, err := file.Write([]byte(l))
-		if err != nil {
-			return err
-		}
-		_, err = file.Write([]byte(LineBreak))
-		if err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
