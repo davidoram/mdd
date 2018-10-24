@@ -25,6 +25,8 @@ The commands are:
 	templates   list the templates available for use
 	new         add a new document based on a template
 	ls					list documents created
+	link				link a parent and child document
+	unlink			remove the link between a parent and child document
 `
 )
 
@@ -41,6 +43,7 @@ func main() {
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
+	unlinkCommand := flag.NewFlagSet("unlink", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -57,6 +60,8 @@ func main() {
 	f.DefValue = fmt.Sprintf("The current directory name ie: '%s'", base)
 
 	editPtr := newCommand.Bool("e", false, "Open the new file in your $EDITOR")
+
+	linkPtr := lsCommand.Bool("l", false, "Display links")
 
 	// Verify that a subcommand has been provided
 	// os.Arg[0] is the main command
@@ -86,13 +91,20 @@ func main() {
 		}
 	case "ls":
 		lsCommand.Parse(os.Args[2:])
-		err = doLs(lsCommand)
+		err = doLs(lsCommand, linkPtr)
 	case "link":
 		if len(os.Args) >= 3 {
 			linkCommand.Parse(os.Args[2:])
 			err = doLink(linkCommand)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd link help'")
+		}
+	case "unlink":
+		if len(os.Args) >= 3 {
+			unlinkCommand.Parse(os.Args[2:])
+			err = doUnlink(unlinkCommand)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd unlink help'")
 		}
 
 	// case "link":
@@ -237,7 +249,7 @@ The arguments are:
 	return fmt.Errorf("No such template: '%s'", shortcut)
 }
 
-func doLs(flags *flag.FlagSet) error {
+func doLs(flags *flag.FlagSet, linkPtr *bool) error {
 	helptext := `
 mdd ls lists all the documents created
 
@@ -265,6 +277,12 @@ The arguments are:
 	for _, d := range p.Documents {
 		log.Printf("%-15s  %-30s", d.BaseFilename(), d.Title)
 
+		// Display links?
+		if *linkPtr {
+			for name := range d.Children {
+				log.Printf("  -> %-15s", name)
+			}
+		}
 	}
 	return nil
 }
@@ -336,6 +354,70 @@ The arguments are:
 	}
 	// log.Printf("OK %s -> %s", pdoc.BaseFilename(), cdoc.BaseFilename())
 	if err = pdoc.AddChild(cdoc); err == nil {
+		err = pdoc.WriteDocument()
+	}
+	return nil
+
+}
+
+func doUnlink(flags *flag.FlagSet) error {
+	helptext := `
+mdd unlink breaks the link between a parent and child document
+
+Usage:
+
+	mdd unlink parent child
+
+parent is the parent documents filename.
+child is the child documents filename.
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// Missing template shortcut
+	if len(os.Args[2:]) != 2 {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return fmt.Errorf("Missing arguments")
+	}
+
+	parent := os.Args[2:][0]
+	if !strings.HasSuffix(parent, ".md") {
+		parent = fmt.Sprintf("%s.md", parent)
+	}
+	child := os.Args[2:][1]
+	if !strings.HasSuffix(child, ".md") {
+		child = fmt.Sprintf("%s.md", child)
+	}
+	if parent == child {
+		return fmt.Errorf("Cant unlink from self")
+	}
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+
+	var pdoc *Document
+	for _, d := range p.Documents {
+		if pdoc == nil && d.BaseFilename() == parent {
+			pdoc = d
+		}
+	}
+	if pdoc == nil {
+		return fmt.Errorf("Cant find parent '%s'", parent)
+	}
+	if err = pdoc.RemoveChild(child); err == nil {
 		err = pdoc.WriteDocument()
 	}
 	return nil

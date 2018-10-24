@@ -57,6 +57,11 @@ func (d *Document) AddChild(child *Document) error {
 	return nil
 }
 
+func (d *Document) RemoveChild(childFilename string) error {
+	delete(d.Children, childFilename)
+	return nil
+}
+
 func (p *Project) ReadDocument(path string) (*Document, error) {
 
 	d := Document{
