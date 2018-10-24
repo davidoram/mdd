@@ -44,6 +44,8 @@ func main() {
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
 	unlinkCommand := flag.NewFlagSet("unlink", flag.ExitOnError)
+	tagCommand := flag.NewFlagSet("tag", flag.ExitOnError)
+	untagCommand := flag.NewFlagSet("untag", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -106,11 +108,21 @@ func main() {
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd unlink help'")
 		}
+	case "tag":
+		if len(os.Args) >= 3 {
+			tagCommand.Parse(os.Args[2:])
+			err = doTag(tagCommand)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd tag help'")
+		}
+	case "untag":
+		if len(os.Args) >= 3 {
+			untagCommand.Parse(os.Args[2:])
+			err = doUntag(untagCommand)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd untag help'")
+		}
 
-	// case "link":
-	// 	linkCommand.Parse(os.Args[2:])
-	// case "unlink":
-	// 	unlinkCommand.Parse(os.Args[2:])
 	// case "tags":
 	// 	tagsCommand.Parse(os.Args[2:])
 	// case "tag":
@@ -275,7 +287,11 @@ The arguments are:
 		return err
 	}
 	for _, d := range p.Documents {
-		log.Printf("%-15s  %-30s", d.BaseFilename(), d.Title)
+		if len(d.TagNames()) > 0 {
+			log.Printf("%-15s  %-30s %s", d.BaseFilename(), d.Title, d.TagNames())
+		} else {
+			log.Printf("%-15s  %-30s", d.BaseFilename(), d.Title)
+		}
 
 		// Display links?
 		if *linkPtr {
@@ -384,7 +400,7 @@ The arguments are:
 		return nil
 	}
 
-	// Missing template shortcut
+	// Missing document
 	if len(os.Args[2:]) != 2 {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
@@ -422,6 +438,124 @@ The arguments are:
 	}
 	return nil
 
+}
+
+func doTag(flags *flag.FlagSet) error {
+	helptext := `
+mdd tag adds tags to a document
+
+Usage:
+
+	mdd tag document tag tag2 ...
+
+document is a documents filename.
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// Missing document & tag
+	if len(os.Args[2:]) < 2 {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return fmt.Errorf("Missing arguments")
+	}
+
+	document := os.Args[2:][0]
+	if !strings.HasSuffix(document, ".md") {
+		document = fmt.Sprintf("%s.md", document)
+	}
+
+	tags := os.Args[3:]
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+
+	var doc *Document
+	for _, d := range p.Documents {
+		if doc == nil && d.BaseFilename() == document {
+			doc = d
+		}
+	}
+	if doc == nil {
+		return fmt.Errorf("Cant find parent '%s'", document)
+	}
+	for _, t := range tags {
+		if err = doc.Tag(t); err != nil {
+			return err
+		}
+	}
+	return doc.WriteDocument()
+}
+
+func doUntag(flags *flag.FlagSet) error {
+	helptext := `
+mdd untag removes tags from a document
+
+Usage:
+
+	mdd untag document tag tag2 ...
+
+document is a documents filename.
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// Missing document
+	if len(os.Args[2:]) != 2 {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return fmt.Errorf("Missing arguments")
+	}
+
+	document := os.Args[2:][0]
+	if !strings.HasSuffix(document, ".md") {
+		document = fmt.Sprintf("%s.md", document)
+	}
+
+	tags := os.Args[3:]
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+
+	var doc *Document
+	for _, d := range p.Documents {
+		if doc == nil && d.BaseFilename() == document {
+			doc = d
+		}
+	}
+	if doc == nil {
+		return fmt.Errorf("Cant find parent '%s'", document)
+	}
+	for _, t := range tags {
+		if err = doc.Untag(t); err != nil {
+			return err
+		}
+	}
+	return doc.WriteDocument()
 }
 
 func execEditor(filename string) error {

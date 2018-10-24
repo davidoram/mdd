@@ -39,6 +39,7 @@ var (
 	filenameRegex  *regexp.Regexp
 	metaStartRegex *regexp.Regexp
 	metaEndRegex   *regexp.Regexp
+	tagRegex       *regexp.Regexp
 )
 
 func init() {
@@ -46,6 +47,7 @@ func init() {
 	filenameRegex = regexp.MustCompile("^(\\w+)-(\\w+)-(\\d+)\\.md$")
 	metaStartRegex = regexp.MustCompile("^\\s*<!-- mdd\\s*$")
 	metaEndRegex = regexp.MustCompile("^\\s*-->\\s*$")
+	tagRegex = regexp.MustCompile("^[[:word:]]{3,20}$")
 }
 
 func (d *Document) BaseFilename() string {
@@ -60,6 +62,27 @@ func (d *Document) AddChild(child *Document) error {
 func (d *Document) RemoveChild(childFilename string) error {
 	delete(d.Children, childFilename)
 	return nil
+}
+
+func (d *Document) Tag(tag string) error {
+	if !tagRegex.MatchString(tag) {
+		return fmt.Errorf("Tags must be 3-20 chars long, made up of the following characters: '0-9A-Za-z_'")
+	}
+	d.Tags[tag] = true
+	return nil
+}
+
+func (d *Document) Untag(tag string) error {
+	delete(d.Tags, tag)
+	return nil
+}
+
+func (d *Document) TagNames() []string {
+	tags := []string{}
+	for tag, _ := range d.Tags {
+		tags = append(tags, tag)
+	}
+	return tags
 }
 
 func (p *Project) ReadDocument(path string) (*Document, error) {
