@@ -126,7 +126,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 
-	// First line that matches the regex, is the description
+	// Read the metadata
 	inMeta := false
 	for _, l := range contents {
 		if inMeta {
@@ -135,7 +135,9 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 				inMeta = false
 			} else {
 				// log.Printf("%d in meta", i)
-				d.parseMetadata(l)
+				if err := d.parseMetadata(l); err != nil {
+					return &d, err
+				}
 			}
 		} else {
 			if metaStartRegex.MatchString(l) {
@@ -198,6 +200,9 @@ func (d *Document) parseMetadata(line string) error {
 
 	key := strings.TrimSpace(meta[0])
 	value := strings.TrimSpace(meta[1])
+	if value == "" {
+		return fmt.Errorf("metadata value for key '%s' is empty", key)
+	}
 	switch key {
 	case MetadataChild:
 		d.Children[value] = true

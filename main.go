@@ -46,6 +46,7 @@ func main() {
 	unlinkCommand := flag.NewFlagSet("unlink", flag.ExitOnError)
 	tagCommand := flag.NewFlagSet("tag", flag.ExitOnError)
 	untagCommand := flag.NewFlagSet("untag", flag.ExitOnError)
+	verifyCommand := flag.NewFlagSet("verify", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -122,17 +123,10 @@ func main() {
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd untag help'")
 		}
+	case "verify":
+		verifyCommand.Parse(os.Args[2:])
+		err = doVerify(verifyCommand)
 
-	// case "tags":
-	// 	tagsCommand.Parse(os.Args[2:])
-	// case "tag":
-	// 	tagCommand.Parse(os.Args[2:])
-	// case "untag":
-	// 	untagCommand.Parse(os.Args[2:])
-	// case "ls":
-	// 	lsCommand.Parse(os.Args[2:])
-	// case "verify":
-	// 	verifyCommand.Parse(os.Args[2:])
 	// case "server":
 	// 	serverCommand.Parse(os.Args[2:])
 	// case "publish":
@@ -556,6 +550,59 @@ The arguments are:
 		}
 	}
 	return doc.WriteDocument()
+}
+
+func doVerify(flags *flag.FlagSet) error {
+	helptext := `
+mdd verify checks the integrity of the documention.
+
+Usage:
+
+	mdd verify
+
+The return code will be zero if no errors exist, non-zero if one or more errors are detected.
+mdd verify is suitable for injecting into a CI pipeline to verify that documentation meets the
+basic level of structural checks.
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+	errors := 0
+	for _, d := range p.Documents {
+		// Check each child pointer is valid
+		for name := range d.Children {
+			found := false
+			for _, c := range p.Documents {
+				if c.BaseFilename() == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				errors += 1
+				fmt.Printf("'%s' has child '%s' which doesnt exist\n", d.BaseFilename(), name)
+			}
+		}
+	}
+
+	if errors != 0 {
+		return fmt.Errorf("Found %d errors", errors)
+	}
+	return nil
 }
 
 func execEditor(filename string) error {
