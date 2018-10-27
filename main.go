@@ -27,6 +27,10 @@ The commands are:
 	ls					list documents created
 	link				link a parent and child document
 	unlink			remove the link between a parent and child document
+	tag					tag a document
+	untag				untag a document
+	verify			verify the struture of the mdd repository documents
+	publish			create a static website reflectings the mdd repository
 `
 )
 
@@ -47,6 +51,7 @@ func main() {
 	tagCommand := flag.NewFlagSet("tag", flag.ExitOnError)
 	untagCommand := flag.NewFlagSet("untag", flag.ExitOnError)
 	verifyCommand := flag.NewFlagSet("verify", flag.ExitOnError)
+	publishCommand := flag.NewFlagSet("publish", flag.ExitOnError)
 
 	// Init subcommand flag pointers
 	dir, err := os.Getwd()
@@ -65,6 +70,8 @@ func main() {
 	editPtr := newCommand.Bool("e", false, "Open the new file in your $EDITOR")
 
 	linkPtr := lsCommand.Bool("l", false, "Display links")
+
+	publishPtr := publishCommand.String("o", dir, "Directory to publish the site to, defaults .mdd/publish")
 
 	// Verify that a subcommand has been provided
 	// os.Arg[0] is the main command
@@ -127,10 +134,12 @@ func main() {
 		verifyCommand.Parse(os.Args[2:])
 		err = doVerify(verifyCommand)
 
+	case "publish":
+		publishCommand.Parse(os.Args[2:])
+		err = doPublish(publishCommand, publishPtr)
+
 	// case "server":
 	// 	serverCommand.Parse(os.Args[2:])
-	// case "publish":
-	// 	publishCommand.Parse(os.Args[2:])
 	default:
 		log.Printf("Unknown command '%s'", os.Args[1])
 		fmt.Println(helptext)
@@ -603,6 +612,61 @@ The arguments are:
 		return fmt.Errorf("Found %d errors", errors)
 	}
 	return nil
+}
+
+func doPublish(flags *flag.FlagSet, dirPtr *string) error {
+	helptext := `
+mdd publish creates a static website for the mdd repository
+
+Usage:
+
+	mdd publish [arguments]
+
+The arguments are:
+`
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	// Asked for help?
+	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+		log.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+
+	err = p.DeleteAllPublished()
+	if err != nil {
+		return err
+	}
+
+	// // Template -> Documents
+	// doctmpl := make(map[*Template][]*Document)
+
+	// // Documents -> child Documents
+	// docchild := make(map[*Template]*Document)
+
+	// // Tag -> Documents
+	// tagdoc := make(map[string]*Document)
+	// data := struct {
+	//       TagDocs map[*Template][]*Document
+	//       TemplateDocs map[*Template][]*Document
+	//   } {}
+
+	for _, d := range p.Documents {
+		log.Printf("Converting %s\n", d.Filename)
+		err = d.ConvertToHTML(p.PublishPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
 }
 
 func execEditor(filename string) error {

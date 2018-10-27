@@ -249,10 +249,8 @@ To publish the documentation as a static website
  
 
 ```
-$ mdd publish ./doc-site
-$ ls doc-site/
-index.html
-...
+$ mdd publish -open
+... will generate in .mdd/publish then open in browser
 
 ```
  

@@ -8,3 +8,5 @@ run:
 get-deps:
 	go get github.com/GeertJohan/go.rice
 	go get github.com/GeertJohan/go.rice/rice
+	go get github.com/microcosm-cc/bluemonday
+	go get gopkg.in/russross/blackfriday.v2

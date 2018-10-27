@@ -8,9 +8,13 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/microcosm-cc/bluemonday"
+	"gopkg.in/russross/blackfriday.v2"
 )
 
 const (
@@ -52,6 +56,10 @@ func init() {
 
 func (d *Document) BaseFilename() string {
 	return filepath.Base(d.Filename)
+}
+
+func (d *Document) HtmlFilename() string {
+	return strings.Replace(d.BaseFilename(), ".md", ".html", 1)
 }
 
 func (d *Document) AddChild(child *Document) error {
@@ -290,4 +298,24 @@ func (p *Project) GenerateFilename(t *Template) string {
 		return filename
 	}
 	panic(fmt.Sprintf("GenerateFilename returning a file that already exists: '%s'", filename))
+}
+
+// Write the output as HTML
+func (d *Document) ConvertToHTML(outPath string) error {
+
+	unsafe := blackfriday.Run(d.raw)
+	html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
+
+	outFile := path.Join(outPath, d.HtmlFilename())
+	_, err := os.Stat(outFile)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("ConvertToHTML, file '%s' already exists", outFile)
+	}
+	file, err := os.OpenFile(outFile, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(html)
+	return err
 }

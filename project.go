@@ -270,3 +270,29 @@ func (p *Project) writeProjectDb(db map[string]string) error {
 	}
 	return nil
 }
+
+func (p *Project) DeleteAllPublished() error {
+	// Open the directory and read all its files.
+	dirRead, err := os.Open(p.PublishPath)
+	if err != nil {
+		return err
+	}
+	dirFiles, err := dirRead.Readdir(0)
+	if err != nil {
+		return err
+	}
+
+	// Loop over the directory's files.
+	for _, f := range dirFiles {
+
+		// Get name of file and its full path.
+		fullPath := filepath.Join(p.PublishPath, f.Name())
+
+		// Remove the file.
+		err = os.Remove(fullPath)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
