@@ -1,0 +1,16 @@
+<h1>Project Summary<h1>
+
+<h2>Tags</h2>
+<ul>
+    {{range $tag, $docList :=  .TagDocs}}
+      <li><h3>{{ $tag }}</h3>
+        <ul>
+          {{range $doc :=  $docList}}
+            <li>
+              <a href='{{ $doc.HtmlFilename }}'>{{ $doc.BaseFilename }}</a> : {{ $doc.Title }}
+            </li>
+          {{ end }}
+        </ul>
+      </li>
+    {{ end }}
+</ul>

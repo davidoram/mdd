@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/exec"
@@ -645,28 +646,56 @@ The arguments are:
 		return err
 	}
 
-	// // Template -> Documents
-	// doctmpl := make(map[*Template][]*Document)
+	// Build up a data structure to use when we spit out the
+	// index.html file
+	data := struct {
+		// Map from tags -> Doc with that tag
+		TagDocs map[string][]Doc
 
-	// // Documents -> child Documents
-	// docchild := make(map[*Template]*Document)
-
-	// // Tag -> Documents
-	// tagdoc := make(map[string]*Document)
-	// data := struct {
-	//       TagDocs map[*Template][]*Document
-	//       TemplateDocs map[*Template][]*Document
-	//   } {}
+		// Map from Template to Documents following that template
+		TemplateDocs map[*Template][]*Document
+	}{
+		TagDocs:      make(map[string][]Doc),
+		TemplateDocs: make(map[*Template][]*Document),
+	}
 
 	for _, d := range p.Documents {
+		for _, t := range d.TagNames() {
+			if data.TagDocs[t] == nil {
+				data.TagDocs[t] = make([]Doc, 0)
+			}
+			data.TagDocs[t] = append(data.TagDocs[t], d.ToDoc())
+		}
 		log.Printf("Converting %s\n", d.Filename)
 		err = d.ConvertToHTML(p.PublishPath)
 		if err != nil {
 			return err
 		}
+
 	}
 
-	return err
+	// Create the index.html document
+	tmpl, err := template.ParseFiles(filepath.Join(p.TemplatePath, "index.html"))
+	if err != nil {
+		return err
+	}
+
+	outFile := filepath.Join(p.PublishPath, "index.html")
+	_, err = os.Stat(outFile)
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("index file '%s' already exists", outFile)
+	}
+	file, err := os.OpenFile(outFile, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	err = tmpl.Execute(file, data)
+	if err != nil {
+		return err
+	}
+	log.Printf("%s\n", outFile)
+	return nil
 }
 
 func execEditor(filename string) error {

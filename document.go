@@ -38,6 +38,15 @@ type Document struct {
 	raw []byte
 }
 
+// This structure is used for templates output
+type Doc struct {
+	BaseFilename string
+	HtmlFilename string
+	Title        string
+	Tags         []string
+	Children     []string
+}
+
 var (
 	titleRegex     *regexp.Regexp
 	filenameRegex  *regexp.Regexp
@@ -52,6 +61,16 @@ func init() {
 	metaStartRegex = regexp.MustCompile("^\\s*<!-- mdd\\s*$")
 	metaEndRegex = regexp.MustCompile("^\\s*-->\\s*$")
 	tagRegex = regexp.MustCompile("^[[:word:]]{3,20}$")
+}
+
+func (d *Document) ToDoc() Doc {
+	return Doc{
+		BaseFilename: d.BaseFilename(),
+		HtmlFilename: d.HtmlFilename(),
+		Title:        d.Title,
+		Tags:         d.TagNames(),
+		Children:     d.ChildrenNames(),
+	}
 }
 
 func (d *Document) BaseFilename() string {
@@ -91,6 +110,14 @@ func (d *Document) TagNames() []string {
 		tags = append(tags, tag)
 	}
 	return tags
+}
+
+func (d *Document) ChildrenNames() []string {
+	children := []string{}
+	for child, _ := range d.Children {
+		children = append(children, child)
+	}
+	return children
 }
 
 func (p *Project) ReadDocument(path string) (*Document, error) {
