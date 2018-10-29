@@ -1,9 +1,8 @@
 <h1>Project Summary<h1>
 
-<h2>Tags</h2>
 <ul>
-    {{range $tag, $docList :=  .TagDocs}}
-      <li><h3>{{ $tag }}</h3>
+    {{range $tmpl, $docList :=  .TmplDocs}}
+      <li><h2>{{ index $.TmplTitles $tmpl }}</h2>
         <ul>
           {{range $doc :=  $docList}}
             <li>
@@ -12,5 +11,21 @@
           {{ end }}
         </ul>
       </li>
+    {{ end }}
+</ul>
+<h2>Tags</h2>
+<ul>
+    {{range $tag, $docList :=  .TagDocs}}
+      <li><h2>{{ $tag }}</h2>
+        <ul>
+          {{range $doc :=  $docList}}
+            <li>
+              <a href='{{ $doc.HtmlFilename }}'>{{ $doc.BaseFilename }}</a> : {{ $doc.Title }}
+            </li>
+          {{ end }}
+        </ul>
+      </li>
+    {{ else }}
+      <li> No tags </li>
     {{ end }}
 </ul>

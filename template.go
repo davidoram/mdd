@@ -14,11 +14,22 @@ type Template struct {
 	Title    string
 }
 
+// This structure is used for templates output
+type TemplateView struct {
+	Title string
+}
+
 var templateDesc *regexp.Regexp
 
 func init() {
 	templateDesc = regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
 
+}
+
+func (t *Template) ForView() TemplateView {
+	return TemplateView{
+		Title: t.Title,
+	}
 }
 
 func ReadTemplate(path string) (Template, error) {

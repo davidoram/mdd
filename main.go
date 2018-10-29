@@ -649,23 +649,39 @@ The arguments are:
 	// Build up a data structure to use when we spit out the
 	// index.html file
 	data := struct {
-		// Map from tags -> Doc with that tag
-		TagDocs map[string][]Doc
+		// Map from tags -> DocView with that tag
+		TagDocs map[string][]DocView
 
-		// Map from Template to Documents following that template
-		TemplateDocs map[*Template][]*Document
+		// Map from Template filename to Documents following that template
+		TmplDocs map[string][]DocView
+
+		// Map from Template filename to Template title
+		TmplTitles map[string]string
 	}{
-		TagDocs:      make(map[string][]Doc),
-		TemplateDocs: make(map[*Template][]*Document),
+		TagDocs:    make(map[string][]DocView),
+		TmplDocs:   make(map[string][]DocView),
+		TmplTitles: make(map[string]string),
 	}
 
 	for _, d := range p.Documents {
+
+		dv := d.ForView()
+
+		// Index by Tag
 		for _, t := range d.TagNames() {
 			if data.TagDocs[t] == nil {
-				data.TagDocs[t] = make([]Doc, 0)
+				data.TagDocs[t] = make([]DocView, 0)
 			}
-			data.TagDocs[t] = append(data.TagDocs[t], d.ToDoc())
+			data.TagDocs[t] = append(data.TagDocs[t], dv)
 		}
+
+		// Index by Template
+		if data.TmplDocs[dv.TemplateFilename] == nil {
+			data.TmplDocs[dv.TemplateFilename] = make([]DocView, 0)
+			data.TmplTitles[dv.TemplateFilename] = dv.TemplateTitle
+		}
+		data.TmplDocs[dv.TemplateFilename] = append(data.TmplDocs[dv.TemplateFilename], d.ForView())
+
 		log.Printf("Converting %s\n", d.Filename)
 		err = d.ConvertToHTML(p.PublishPath)
 		if err != nil {

@@ -39,12 +39,14 @@ type Document struct {
 }
 
 // This structure is used for templates output
-type Doc struct {
-	BaseFilename string
-	HtmlFilename string
-	Title        string
-	Tags         []string
-	Children     []string
+type DocView struct {
+	BaseFilename     string
+	HtmlFilename     string
+	Title            string
+	Tags             []string
+	Children         []string
+	TemplateFilename string
+	TemplateTitle    string
 }
 
 var (
@@ -63,13 +65,15 @@ func init() {
 	tagRegex = regexp.MustCompile("^[[:word:]]{3,20}$")
 }
 
-func (d *Document) ToDoc() Doc {
-	return Doc{
-		BaseFilename: d.BaseFilename(),
-		HtmlFilename: d.HtmlFilename(),
-		Title:        d.Title,
-		Tags:         d.TagNames(),
-		Children:     d.ChildrenNames(),
+func (d *Document) ForView() DocView {
+	return DocView{
+		BaseFilename:     d.BaseFilename(),
+		HtmlFilename:     d.HtmlFilename(),
+		Title:            d.Title,
+		Tags:             d.TagNames(),
+		Children:         d.ChildrenNames(),
+		TemplateFilename: d.Template.Filename,
+		TemplateTitle:    d.Template.Title,
 	}
 }
 
