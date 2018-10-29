@@ -657,15 +657,22 @@ The arguments are:
 
 		// Map from Template filename to Template title
 		TmplTitles map[string]string
+
+		// Map from filename -> DocView
+		FilenameDocs map[string]DocView
 	}{
-		TagDocs:    make(map[string][]DocView),
-		TmplDocs:   make(map[string][]DocView),
-		TmplTitles: make(map[string]string),
+		TagDocs:      make(map[string][]DocView),
+		TmplDocs:     make(map[string][]DocView),
+		TmplTitles:   make(map[string]string),
+		FilenameDocs: make(map[string]DocView),
 	}
 
 	for _, d := range p.Documents {
 
 		dv := d.ForView()
+
+		// Map by filename
+		data.FilenameDocs[dv.BaseFilename] = dv
 
 		// Index by Tag
 		for _, t := range d.TagNames() {
@@ -682,7 +689,7 @@ The arguments are:
 		}
 		data.TmplDocs[dv.TemplateFilename] = append(data.TmplDocs[dv.TemplateFilename], d.ForView())
 
-		log.Printf("Converting %s\n", d.Filename)
+		// log.Printf("Converting %s\n", d.Filename)
 		err = d.ConvertToHTML(p.PublishPath)
 		if err != nil {
 			return err
@@ -710,7 +717,7 @@ The arguments are:
 	if err != nil {
 		return err
 	}
-	log.Printf("%s\n", outFile)
+	// log.Printf("%s\n", outFile)
 	return nil
 }
 

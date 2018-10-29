@@ -1,31 +1,49 @@
-<h1>Project Summary<h1>
+<h1>Project Summary</h1>
 
+<h2>Documents by Template</h2>
 <ul>
     {{range $tmpl, $docList :=  .TmplDocs}}
-      <li><h2>{{ index $.TmplTitles $tmpl }}</h2>
+      <li><h3>{{ index $.TmplTitles $tmpl }}</h3>
         <ul>
           {{range $doc :=  $docList}}
             <li>
               <a href='{{ $doc.HtmlFilename }}'>{{ $doc.BaseFilename }}</a> : {{ $doc.Title }}
-            </li>
-          {{ end }}
-        </ul>
-      </li>
-    {{ end }}
-</ul>
-<h2>Tags</h2>
-<ul>
-    {{range $tag, $docList :=  .TagDocs}}
-      <li><h2>{{ $tag }}</h2>
-        <ul>
-          {{range $doc :=  $docList}}
-            <li>
-              <a href='{{ $doc.HtmlFilename }}'>{{ $doc.BaseFilename }}</a> : {{ $doc.Title }}
+              <ul>
+              {{range $child :=  $doc.Children}}
+                {{ $cdoc := index $.FilenameDocs $child }}
+                <li>
+                  <a href='{{ $cdoc.HtmlFilename }}'>{{ $cdoc.BaseFilename }}</a> : {{ $cdoc.Title }}
+                </li>
+              {{end}}
+              </ul>
             </li>
           {{ end }}
         </ul>
       </li>
     {{ else }}
-      <li> No tags </li>
+      <li> No documents! </li>
+    {{ end }}
+</ul>
+<h2>Documents by Tag</h2>
+<ul>
+    {{range $tag, $docList :=  .TagDocs}}
+      <li><h3>{{ $tag }}</h3>
+        <ul>
+          {{range $doc :=  $docList}}
+            <li>
+              <a href='{{ $doc.HtmlFilename }}'>{{ $doc.BaseFilename }}</a> : {{ $doc.Title }}
+              <ul>
+              {{range $child :=  $doc.Children}}
+                {{ $cdoc := index $.FilenameDocs $child }}
+                <li>
+                  <a href='{{ $cdoc.HtmlFilename }}'>{{ $cdoc.BaseFilename }}</a> : {{ $cdoc.Title }}
+                </li>
+              {{end}}
+            </li>
+          {{ end }}
+        </ul>
+      </li>
+    {{ else }}
+      <li> No tags! </li>
     {{ end }}
 </ul>
