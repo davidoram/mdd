@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.9
+  - 1.10
+  - 1.11
+  - master
+
+before_install:
+  - sudo add-apt-repository ppa:duggan/bats -y
+  - sudo apt-get update -q
+  - sudo apt-get install -y bats
+
+script:
+  - make build
+  - bats mdd.bats
