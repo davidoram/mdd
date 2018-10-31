@@ -92,52 +92,52 @@ func main() {
 		err = doInit(initCommand, dirPtr, projectPtr, false)
 	case "templates":
 		tmplCommand.Parse(os.Args[2:])
-		err = doTemplates(tmplCommand)
+		err = doTemplates(tmplCommand, false)
 	case "new":
 		if len(os.Args) >= 3 {
 			newCommand.Parse(os.Args[3:])
-			err = doNew(newCommand, editPtr)
+			err = doNew(newCommand, editPtr, false)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd new help'")
 		}
 	case "ls":
 		lsCommand.Parse(os.Args[2:])
-		err = doLs(lsCommand, linkPtr)
+		err = doLs(lsCommand, linkPtr, false)
 	case "link":
 		if len(os.Args) >= 3 {
 			linkCommand.Parse(os.Args[2:])
-			err = doLink(linkCommand)
+			err = doLink(linkCommand, false)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd link help'")
 		}
 	case "unlink":
 		if len(os.Args) >= 3 {
 			unlinkCommand.Parse(os.Args[2:])
-			err = doUnlink(unlinkCommand)
+			err = doUnlink(unlinkCommand, false)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd unlink help'")
 		}
 	case "tag":
 		if len(os.Args) >= 3 {
 			tagCommand.Parse(os.Args[2:])
-			err = doTag(tagCommand)
+			err = doTag(tagCommand, false)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd tag help'")
 		}
 	case "untag":
 		if len(os.Args) >= 3 {
 			untagCommand.Parse(os.Args[2:])
-			err = doUntag(untagCommand)
+			err = doUntag(untagCommand, false)
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd untag help'")
 		}
 	case "verify":
 		verifyCommand.Parse(os.Args[2:])
-		err = doVerify(verifyCommand)
+		err = doVerify(verifyCommand, false)
 
 	case "publish":
 		publishCommand.Parse(os.Args[2:])
-		err = doPublish(publishCommand, publishPtr)
+		err = doPublish(publishCommand, publishPtr, false)
 
 	case "help":
 		if len(os.Args) >= 3 {
@@ -145,14 +145,23 @@ func main() {
 			case "init":
 				doInit(initCommand, dirPtr, projectPtr, true)
 			case "templates":
+				doTemplates(tmplCommand, true)
 			case "new":
+				doNew(newCommand, editPtr, true)
 			case "ls":
+				doLs(lsCommand, linkPtr, true)
 			case "link":
+				doLink(linkCommand, true)
 			case "unlink":
+				doUnlink(unlinkCommand, true)
 			case "tag":
+				doTag(tagCommand, true)
 			case "untag":
+				doUntag(untagCommand, true)
 			case "verify":
+				doVerify(verifyCommand, true)
 			case "publish":
+				doPublish(publishCommand, publishPtr, true)
 			default:
 				log.Printf("Unknown command '%s'", os.Args[2])
 				fmt.Println(helptext)
@@ -204,7 +213,7 @@ The arguments are:
 	return err
 }
 
-func doTemplates(flags *flag.FlagSet) error {
+func doTemplates(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd templates lists the templates available
 
@@ -212,17 +221,18 @@ Usage:
 
 	mdd templates
 `
+	// Asked for help
+	if displayHelp {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
 	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	// Asked for help
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-		fmt.Println(helptext)
-		flags.PrintDefaults()
-		return nil
-	}
 	p, err := FindProjectBelowCwd()
 	if err != nil {
 		return err
@@ -236,7 +246,7 @@ Usage:
 	return nil
 }
 
-func doNew(flags *flag.FlagSet, openEditor *bool) error {
+func doNew(flags *flag.FlagSet, openEditor *bool, displayHelp bool) error {
 	helptext := `
 mdd new creates a new document from a template
 
@@ -249,15 +259,16 @@ title is an optional title for the document.
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	// Missing template shortcut
@@ -289,7 +300,7 @@ The arguments are:
 	return fmt.Errorf("No such template: '%s'", shortcut)
 }
 
-func doLs(flags *flag.FlagSet, linkPtr *bool) error {
+func doLs(flags *flag.FlagSet, linkPtr *bool, displayHelp bool) error {
 	helptext := `
 mdd ls lists all the documents created
 
@@ -299,15 +310,16 @@ Usage:
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	p, err := FindProjectBelowCwd()
@@ -331,7 +343,7 @@ The arguments are:
 	return nil
 }
 
-func doLink(flags *flag.FlagSet) error {
+func doLink(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd link links a parent and child document
 
@@ -344,16 +356,17 @@ child is the child documents filename.
 
 The arguments are:
 `
+	// Asked for help?
+	if displayHelp {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
 	// log.Printf("%v %d", os.Args, len(os.Args))
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
 	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
-	}
-	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-		fmt.Println(helptext)
-		flags.PrintDefaults()
-		return nil
 	}
 
 	// Missing template shortcut
@@ -404,7 +417,7 @@ The arguments are:
 
 }
 
-func doUnlink(flags *flag.FlagSet) error {
+func doUnlink(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd unlink breaks the link between a parent and child document
 
@@ -417,15 +430,16 @@ child is the child documents filename.
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	// Missing document
@@ -468,7 +482,7 @@ The arguments are:
 
 }
 
-func doTag(flags *flag.FlagSet) error {
+func doTag(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd tag adds tags to a document
 
@@ -480,15 +494,16 @@ document is a documents filename.
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	// Missing document & tag
@@ -527,7 +542,7 @@ The arguments are:
 	return doc.WriteDocument()
 }
 
-func doUntag(flags *flag.FlagSet) error {
+func doUntag(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd untag removes tags from a document
 
@@ -539,15 +554,16 @@ document is a documents filename.
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	// Missing document
@@ -586,9 +602,9 @@ The arguments are:
 	return doc.WriteDocument()
 }
 
-func doVerify(flags *flag.FlagSet) error {
+func doVerify(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
-mdd verify checks the integrity of the documention.
+mdd verify checks the integrity of the documents
 
 Usage:
 
@@ -600,15 +616,16 @@ basic level of structural checks.
 
 The arguments are:
 `
-	// FlagSet.Parse() will evaluate to false if no flags were parsed
-	if !flags.Parsed() {
-		return fmt.Errorf("Error parsing arguments")
-	}
 	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
+	if displayHelp {
 		fmt.Println(helptext)
 		flags.PrintDefaults()
 		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
 	}
 
 	p, err := FindProjectBelowCwd()
@@ -639,7 +656,7 @@ The arguments are:
 	return nil
 }
 
-func doPublish(flags *flag.FlagSet, dirPtr *string) error {
+func doPublish(flags *flag.FlagSet, dirPtr *string, displayHelp bool) error {
 	helptext := `
 mdd publish creates a static website for the mdd repository
 
@@ -649,17 +666,18 @@ Usage:
 
 The arguments are:
 `
+	// Asked for help?
+	if displayHelp {
+		log.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
 	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-		log.Println(helptext)
-		flags.PrintDefaults()
-		return nil
-	}
 	p, err := FindProjectBelowCwd()
 	if err != nil {
 		return err
