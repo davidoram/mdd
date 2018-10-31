@@ -89,7 +89,7 @@ func main() {
 	switch os.Args[1] {
 	case "init":
 		initCommand.Parse(os.Args[2:])
-		err = doInit(initCommand, dirPtr, projectPtr)
+		err = doInit(initCommand, dirPtr, projectPtr, false)
 	case "templates":
 		tmplCommand.Parse(os.Args[2:])
 		err = doTemplates(tmplCommand)
@@ -139,6 +139,29 @@ func main() {
 		publishCommand.Parse(os.Args[2:])
 		err = doPublish(publishCommand, publishPtr)
 
+	case "help":
+		if len(os.Args) >= 3 {
+			switch os.Args[2] {
+			case "init":
+				doInit(initCommand, dirPtr, projectPtr, true)
+			case "templates":
+			case "new":
+			case "ls":
+			case "link":
+			case "unlink":
+			case "tag":
+			case "untag":
+			case "verify":
+			case "publish":
+			default:
+				log.Printf("Unknown command '%s'", os.Args[2])
+				fmt.Println(helptext)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Println(helptext)
+		}
+
 	// case "server":
 	// 	serverCommand.Parse(os.Args[2:])
 	default:
@@ -155,7 +178,7 @@ func main() {
 
 }
 
-func doInit(flags *flag.FlagSet, dirPtr, projectPtr *string) error {
+func doInit(flags *flag.FlagSet, dirPtr, projectPtr *string, displayHelp bool) error {
 	helptext := `
 mdd init creates a new mdd document repository
 
@@ -165,17 +188,18 @@ Usage:
 
 The arguments are:
 `
+	// Asked for help?
+	if displayHelp {
+		log.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
 	// FlagSet.Parse() will evaluate to false if no flags were parsed
 	if !flags.Parsed() {
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	// Asked for help?
-	if len(os.Args[2:]) > 0 && os.Args[2:][0] == "help" {
-		log.Println(helptext)
-		flags.PrintDefaults()
-		return nil
-	}
 	_, err := NewProject(dirPtr, projectPtr)
 	return err
 }

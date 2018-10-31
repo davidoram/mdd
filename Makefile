@@ -13,7 +13,7 @@ go-deps:
 
 
 test:
-	bats mdd-init.bats
+	bats *.bats
 
 test-deps:
 	open https://github.com/sstephenson/bats
