@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# Test script for 'mdd' command
+# Test script for 'mdd init' command
 #
 
 @test "mdd init" {

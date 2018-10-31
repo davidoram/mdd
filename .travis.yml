@@ -13,4 +13,4 @@ before_install:
 
 script:
   - make build
-  - bats mdd.bats
+  - make test
