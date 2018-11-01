@@ -186,11 +186,14 @@ func ReadProject(homePath string) (Project, error) {
 		if info.IsDir() {
 			return nil
 		}
-		tmpl, err := ReadTemplate(path)
-		if err != nil {
-			log.Printf("Ignoring template at path %q: %v\n", path, err)
-		} else {
-			p.Templates = append(p.Templates, tmpl)
+		// Only treat markdown files as templates
+		if filepath.Ext(path) == ".md" {
+			tmpl, err := ReadTemplate(path)
+			if err != nil {
+				log.Printf("Ignoring template at path %q: %v\n", path, err)
+			} else {
+				p.Templates = append(p.Templates, tmpl)
+			}
 		}
 		return nil
 	})
