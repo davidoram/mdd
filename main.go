@@ -25,14 +25,14 @@ The commands are:
 	init        initialise a mdd repository
 	templates   list the templates available for use
 	new         add a new document based on a template
-	info				display project information
-	ls					list documents created
-	link				link a parent and child document
-	unlink			remove the link between a parent and child document
-	tag					tag a document
-	untag				untag a document
-	verify			verify the struture of the mdd repository documents
-	publish			create a static website reflectings the mdd repository
+	info        display project information
+	ls          list documents created
+	link        link a parent and child document
+	unlink      remove the link between a parent and child document
+	tag         tag a document
+	untag       untag a document
+	verify      verify the struture of the mdd repository documents
+	publish     create a static website reflectings the mdd repository
 `
 )
 
