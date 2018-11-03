@@ -38,6 +38,7 @@ Resources:
 -   <https://github.com/russross/blackfriday>
 - https://blog.rapid7.com/2016/08/04/build-a-simple-cli-tool-with-golang/
 - http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions
+- https://github.com/sstephenson/bats
 
  
 File structure

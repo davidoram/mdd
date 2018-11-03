@@ -133,22 +133,23 @@ func NewProject(projectDir, name *string) (Project, error) {
 
 // Context provided to the Project directory walk fn
 type projectWalkCtx struct {
-	HomePath string
+	HomePaths []string
 }
 
 // FindProjectBelowCwd `walk`s the directory tree from '.' looking for the '.mdd' directory
 // If it finds a project, will return it, otherwise will return nil
 func FindProjectBelowCwd() (*Project, error) {
 
-	ctx := projectWalkCtx{}
+	ctx := projectWalkCtx{HomePaths: make([]string, 0)}
 	//log.Printf("Looking for project ...")
 	err := filepath.Walk(".", ctx.projectWalkFn)
-	if err != nil && ctx.HomePath != "" {
+	if err != nil {
 		return nil, err
 	}
-	if ctx.HomePath != "" {
+
+	if len(ctx.HomePaths) > 0 {
 		// Return a correctly initialised Project structure
-		p, err := ReadProject(ctx.HomePath)
+		p, err := ReadProject(ctx.HomePaths[0])
 		if err != nil {
 			return nil, err
 		}
@@ -159,12 +160,12 @@ func FindProjectBelowCwd() (*Project, error) {
 
 func (ctx *projectWalkCtx) projectWalkFn(path string, info os.FileInfo, err error) error {
 	if err != nil {
-		log.Printf("error accessing a path %q: %v\n", path, err)
+		//log.Printf("error accessing a path %q: %v\n", path, err)
 		return err
 	}
 	if info.IsDir() && info.Name() == RootDirectory {
-		ctx.HomePath = path
-		// log.Printf("Found project at '%s'", path)
+		ctx.HomePaths = append(ctx.HomePaths, path)
+		//log.Printf("Found project at '%s'", path)
 		return filepath.SkipDir
 	}
 	return nil

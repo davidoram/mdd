@@ -25,6 +25,7 @@ The commands are:
 	init        initialise a mdd repository
 	templates   list the templates available for use
 	new         add a new document based on a template
+	info				display project information
 	ls					list documents created
 	link				link a parent and child document
 	unlink			remove the link between a parent and child document
@@ -48,6 +49,7 @@ func main() {
 	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
+	infoCommand := flag.NewFlagSet("info", flag.ExitOnError)
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
 	unlinkCommand := flag.NewFlagSet("unlink", flag.ExitOnError)
@@ -102,6 +104,9 @@ func main() {
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd new help'")
 		}
+	case "info":
+		infoCommand.Parse(os.Args[2:])
+		err = doInfo(infoCommand, false)
 	case "ls":
 		lsCommand.Parse(os.Args[2:])
 		err = doLs(lsCommand, linkPtr, false)
@@ -150,6 +155,8 @@ func main() {
 				doTemplates(tmplCommand, true)
 			case "new":
 				doNew(newCommand, editPtr, true)
+			case "info":
+				doInfo(infoCommand, true)
 			case "ls":
 				doLs(lsCommand, linkPtr, true)
 			case "link":
@@ -300,6 +307,40 @@ The arguments are:
 		}
 	}
 	return fmt.Errorf("No such template: '%s'", shortcut)
+}
+
+func doInfo(flags *flag.FlagSet, displayHelp bool) error {
+	helptext := `
+mdd info displays information about the project
+
+Usage:
+
+	mdd info
+
+The arguments are:
+`
+	// Asked for help?
+	if displayHelp {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+	log.Printf("mdd project info")
+	log.Printf("----------------")
+	log.Printf("path      : %s", p.HomePath)
+	log.Printf("templates : %d", len(p.Templates))
+	log.Printf("documents : %d", len(p.Documents))
+	return nil
 }
 
 func doLs(flags *flag.FlagSet, linkPtr *bool, displayHelp bool) error {
