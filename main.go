@@ -38,6 +38,8 @@ The commands are:
 func init() {
 	// Remove the Date/Time from log messages
 	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+	// Direct log to stdout rather than the default stderr
+	log.SetOutput(os.Stdout)
 }
 
 func main() {
