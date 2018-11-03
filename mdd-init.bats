@@ -2,6 +2,9 @@
 #
 # Test script for 'mdd init' command
 #
+teardown() {
+  rm -rf ./foo
+}
 
 @test "mdd init" {
   rm -rf ./.mdd

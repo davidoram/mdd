@@ -335,6 +335,10 @@ The arguments are:
 	if err != nil {
 		return err
 	}
+	if p == nil {
+		log.Printf("No projects found")
+		return nil
+	}
 	log.Printf("mdd project info")
 	log.Printf("----------------")
 	log.Printf("path      : %s", p.HomePath)
