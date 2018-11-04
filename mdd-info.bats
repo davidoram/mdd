@@ -15,8 +15,8 @@ teardown() {
 
 @test "mdd info, no project" {
   run $BATS_CWD/mdd info
-  [ "$status" -eq 0 ]
-  [ "${lines[0]}" = "No projects found" ]
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "No project found" ]
 }
 
 @test "mdd info, no files" {

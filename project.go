@@ -136,10 +136,11 @@ type projectWalkCtx struct {
 	HomePaths []string
 }
 
-// FindProjectBelowCwd `walk`s the directory tree from '.' looking for the '.mdd' directory
-// If it finds a project, will return it, otherwise will return nil
-func FindProjectBelowCwd() (*Project, error) {
+var errNoProjectFound = fmt.Errorf("No project found")
 
+// FindProjectBelowCwd `walk`s the directory tree from '.' looking for the '.mdd' directory
+// If it finds a project, will return it, otherwise will return errNoProjectFound
+func FindProjectBelowCwd() (*Project, error) {
 	ctx := projectWalkCtx{HomePaths: make([]string, 0)}
 	//log.Printf("Looking for project ...")
 	err := filepath.Walk(".", ctx.projectWalkFn)
@@ -155,7 +156,7 @@ func FindProjectBelowCwd() (*Project, error) {
 		}
 		return &p, err
 	}
-	return nil, err
+	return nil, errNoProjectFound
 }
 
 func (ctx *projectWalkCtx) projectWalkFn(path string, info os.FileInfo, err error) error {

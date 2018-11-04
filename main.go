@@ -49,6 +49,7 @@ func main() {
 	initCommand := flag.NewFlagSet("init", flag.ExitOnError)
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
+	editCommand := flag.NewFlagSet("edit", flag.ExitOnError)
 	infoCommand := flag.NewFlagSet("info", flag.ExitOnError)
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
@@ -102,7 +103,14 @@ func main() {
 			newCommand.Parse(os.Args[3:])
 			err = doNew(newCommand, editPtr, false)
 		} else {
-			err = fmt.Errorf("Cannot parse command line. Try 'mdd new help'")
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help new'")
+		}
+	case "edit":
+		if len(os.Args) >= 3 {
+			editCommand.Parse(os.Args[3:])
+			err = doEdit(editCommand, false)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help edit'")
 		}
 	case "info":
 		infoCommand.Parse(os.Args[2:])
@@ -115,28 +123,28 @@ func main() {
 			linkCommand.Parse(os.Args[2:])
 			err = doLink(linkCommand, false)
 		} else {
-			err = fmt.Errorf("Cannot parse command line. Try 'mdd link help'")
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help link'")
 		}
 	case "unlink":
 		if len(os.Args) >= 3 {
 			unlinkCommand.Parse(os.Args[2:])
 			err = doUnlink(unlinkCommand, false)
 		} else {
-			err = fmt.Errorf("Cannot parse command line. Try 'mdd unlink help'")
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help unlink'")
 		}
 	case "tag":
 		if len(os.Args) >= 3 {
 			tagCommand.Parse(os.Args[2:])
 			err = doTag(tagCommand, false)
 		} else {
-			err = fmt.Errorf("Cannot parse command line. Try 'mdd tag help'")
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help tag'")
 		}
 	case "untag":
 		if len(os.Args) >= 3 {
 			untagCommand.Parse(os.Args[2:])
 			err = doUntag(untagCommand, false)
 		} else {
-			err = fmt.Errorf("Cannot parse command line. Try 'mdd untag help'")
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help untag'")
 		}
 	case "verify":
 		verifyCommand.Parse(os.Args[2:])
@@ -155,6 +163,8 @@ func main() {
 				doTemplates(tmplCommand, true)
 			case "new":
 				doNew(newCommand, editPtr, true)
+			case "edit":
+				doEdit(editCommand, true)
 			case "info":
 				doInfo(infoCommand, true)
 			case "ls":
@@ -309,6 +319,47 @@ The arguments are:
 	return fmt.Errorf("No such template: '%s'", shortcut)
 }
 
+func doEdit(flags *flag.FlagSet, displayHelp bool) error {
+	helptext := `
+mdd edit opens an edixiting document in your editor
+
+Usage:
+
+	mdd edit document
+
+The $EDITOR environment variable specfies the editor command to run.
+
+The arguments are:
+`
+	// Asked for help?
+	if displayHelp {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	// Missing template shortcut
+	if len(os.Args[2:]) == 0 {
+		return fmt.Errorf("Missing 'filename' argument")
+	}
+	filename := os.Args[2:][0]
+	p, err := FindProjectBelowCwd()
+	if err != nil {
+		return err
+	}
+	for _, d := range p.Documents {
+		if d.BaseFilename() == filename {
+			return execEditor(d.Filename)
+		}
+	}
+	return fmt.Errorf("No such file: '%s'", filename)
+}
+
 func doInfo(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
 mdd info displays information about the project
@@ -335,10 +386,7 @@ The arguments are:
 	if err != nil {
 		return err
 	}
-	if p == nil {
-		log.Printf("No projects found")
-		return nil
-	}
+
 	log.Printf("mdd project info")
 	log.Printf("----------------")
 	log.Printf("path      : %s", p.HomePath)
@@ -455,6 +503,9 @@ The arguments are:
 	}
 	if cdoc == nil {
 		return fmt.Errorf("Cant find child '%s'", child)
+	}
+	if cdoc == pdoc {
+		return fmt.Errorf("Cant link to self", child)
 	}
 	// log.Printf("OK %s -> %s", pdoc.BaseFilename(), cdoc.BaseFilename())
 	if err = pdoc.AddChild(cdoc); err == nil {
