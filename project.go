@@ -128,7 +128,7 @@ func NewProject(projectDir, name *string) (Project, error) {
 		return p, err
 	}
 	// Return a correctly initialised Project structure
-	return ReadProject(p.HomePath)
+	return ReadProject(p.HomePath, false)
 }
 
 // Context provided to the Project directory walk fn
@@ -140,7 +140,9 @@ var errNoProjectFound = fmt.Errorf("No project found")
 
 // FindProjectBelowCwd `walk`s the directory tree from '.' looking for the '.mdd' directory
 // If it finds a project, will return it, otherwise will return errNoProjectFound
-func FindProjectBelowCwd() (*Project, error) {
+// If ignoreBrokenFiles is true will skip over broken Templates and Documents, which is
+// useful for being able to work on projects that have small problems
+func FindProjectBelowCwd(ignoreBrokenFiles bool) (*Project, error) {
 	ctx := projectWalkCtx{HomePaths: make([]string, 0)}
 	//log.Printf("Looking for project ...")
 	err := filepath.Walk(".", ctx.projectWalkFn)
@@ -150,7 +152,7 @@ func FindProjectBelowCwd() (*Project, error) {
 
 	if len(ctx.HomePaths) > 0 {
 		// Return a correctly initialised Project structure
-		p, err := ReadProject(ctx.HomePaths[0])
+		p, err := ReadProject(ctx.HomePaths[0], ignoreBrokenFiles)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +174,7 @@ func (ctx *projectWalkCtx) projectWalkFn(path string, info os.FileInfo, err erro
 	return nil
 }
 
-func ReadProject(homePath string) (Project, error) {
+func ReadProject(homePath string, ignoreBrokenFiles bool) (Project, error) {
 
 	p := Project{HomePath: homePath}
 	p.TemplatePath = path.Join(p.HomePath, "templates")
@@ -192,6 +194,9 @@ func ReadProject(homePath string) (Project, error) {
 		if filepath.Ext(path) == ".md" {
 			tmpl, err := ReadTemplate(path)
 			if err != nil {
+				if !ignoreBrokenFiles {
+					return err
+				}
 				log.Printf("Ignoring template at path %q: %v\n", path, err)
 			} else {
 				p.Templates = append(p.Templates, tmpl)
@@ -214,6 +219,9 @@ func ReadProject(homePath string) (Project, error) {
 		}
 		doc, err := p.ReadDocument(path)
 		if err != nil {
+			if !ignoreBrokenFiles {
+				return err
+			}
 			log.Printf("Ignoring document at path %q: %v\n", path, err)
 		} else {
 			p.Documents = append(p.Documents, doc)

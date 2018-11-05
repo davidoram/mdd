@@ -8,10 +8,10 @@ setup() {
   rm -rf ./.mdd
 }
 
-# teardown() {
-#   rm -rf ./tmp/.mdd
-#   rm -rf ./.mdd
-# }
+teardown() {
+  rm -rf ./tmp/.mdd
+  rm -rf ./.mdd
+}
 
 @test "mdd link missing both args" {
   run $BATS_CWD/mdd link
@@ -59,4 +59,15 @@ setup() {
   child=$(basename $($BATS_CWD/mdd new adr))
   run $BATS_CWD/mdd link ${parent} ${child}
   [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${parent} -> ${child}" ]
+}
+
+@test "mdd link, duplicate" {
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  $BATS_CWD/mdd link ${parent} ${child}
+  run $BATS_CWD/mdd link ${parent} ${child}
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${parent} -> ${child}" ]
 }

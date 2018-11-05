@@ -252,7 +252,7 @@ Usage:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ The arguments are:
 		return fmt.Errorf("Missing 'template shortcut' argument")
 	}
 	shortcut := os.Args[2:][0]
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ The arguments are:
 		return fmt.Errorf("Missing 'filename' argument")
 	}
 	filename := os.Args[2:][0]
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -382,7 +382,7 @@ The arguments are:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -417,7 +417,7 @@ The arguments are:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -483,7 +483,7 @@ The arguments are:
 		return fmt.Errorf("Cant link to self")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -505,14 +505,13 @@ The arguments are:
 		return fmt.Errorf("Cant find child '%s'", child)
 	}
 	if cdoc == pdoc {
-		return fmt.Errorf("Cant link to self", child)
+		return fmt.Errorf("Cant link to self")
 	}
-	// log.Printf("OK %s -> %s", pdoc.BaseFilename(), cdoc.BaseFilename())
 	if err = pdoc.AddChild(cdoc); err == nil {
 		err = pdoc.WriteDocument()
 	}
-	return nil
-
+	log.Printf("%s -> %s", pdoc.BaseFilename(), cdoc.BaseFilename())
+	return err
 }
 
 func doUnlink(flags *flag.FlagSet, displayHelp bool) error {
@@ -559,7 +558,7 @@ The arguments are:
 		return fmt.Errorf("Cant unlink from self")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -618,7 +617,7 @@ The arguments are:
 
 	tags := os.Args[3:]
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -678,7 +677,7 @@ The arguments are:
 
 	tags := os.Args[3:]
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -726,7 +725,13 @@ The arguments are:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	p, err := FindProjectBelowCwd()
+	// Note: Open with errors returned
+	p, err := FindProjectBelowCwd(false)
+	if err != nil {
+		fmt.Printf("Project has error '%s'\n", err)
+	}
+	// .. now open ignoring minor errors, so we can do more checking
+	p, err = FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}
@@ -742,7 +747,7 @@ The arguments are:
 				}
 			}
 			if !found {
-				errors += 1
+				errors++
 				fmt.Printf("'%s' has child '%s' which doesnt exist\n", d.BaseFilename(), name)
 			}
 		}
@@ -776,7 +781,7 @@ The arguments are:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
-	p, err := FindProjectBelowCwd()
+	p, err := FindProjectBelowCwd(true)
 	if err != nil {
 		return err
 	}

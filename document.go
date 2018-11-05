@@ -166,24 +166,28 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 	}
 
 	// Read the metadata
+	foundMetadataStart := false
+	foundMetadataEnd := false
 	inMeta := false
 	for _, l := range contents {
 		if inMeta {
 			if metaEndRegex.MatchString(l) {
-				// log.Printf("%d end meta", i)
+				foundMetadataEnd = true
 				inMeta = false
 			} else {
-				// log.Printf("%d in meta", i)
 				if err := d.parseMetadata(l); err != nil {
 					return &d, err
 				}
 			}
 		} else {
 			if metaStartRegex.MatchString(l) {
-				// log.Printf("%d start meta", i)
+				foundMetadataStart = true
 				inMeta = true
 			}
 		}
+	}
+	if !(foundMetadataStart && foundMetadataEnd) {
+		return &d, fmt.Errorf("Missing metadata")
 	}
 	return &d, nil
 }
@@ -281,6 +285,12 @@ func (p *Project) NewDocument(t *Template, title string) (Document, error) {
 		if err != nil {
 			return d, err
 		}
+	}
+
+	// Write metadata section
+	_, err = f.WriteString(fmt.Sprintf("%s\n%s", MetadataStart, MetadataEnd))
+	if err != nil {
+		return d, err
 	}
 
 	return d, nil
