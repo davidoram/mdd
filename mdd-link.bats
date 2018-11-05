@@ -53,6 +53,16 @@ teardown() {
   [ "${lines[0]}" = "Cant link to self" ]
 }
 
+@test "mdd link, duplicate" {
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  $BATS_CWD/mdd link ${parent} ${child}
+  run $BATS_CWD/mdd link ${parent} ${child}
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${parent} -> ${child}" ]
+}
+
 @test "mdd link, valid" {
   $BATS_CWD/mdd init
   parent=$(basename $($BATS_CWD/mdd new adr))
@@ -62,12 +72,36 @@ teardown() {
   [ "${lines[0]}" = "${parent} -> ${child}" ]
 }
 
-@test "mdd link, duplicate" {
+@test "mdd link, updates metadata" {
   $BATS_CWD/mdd init
-  parent=$(basename $($BATS_CWD/mdd new adr))
+  parent_path=$($BATS_CWD/mdd new adr)
+  parent=$(basename ${parent_path})
   child=$(basename $($BATS_CWD/mdd new adr))
   $BATS_CWD/mdd link ${parent} ${child}
-  run $BATS_CWD/mdd link ${parent} ${child}
+  run grep "mdd-child: ${child}" $parent_path
   [ "$status" -eq 0 ]
-  [ "${lines[0]}" = "${parent} -> ${child}" ]
+}
+
+@test "mdd link, many files" {
+  $BATS_CWD/mdd init
+  children=()
+  for i in {1..10}; do
+    children+=($(basename $($BATS_CWD/mdd new adr)))
+  done
+  parent_path=$($BATS_CWD/mdd new adr)
+  parent=$(basename ${parent_path})
+  for child in ${children[@]}; do
+    run $BATS_CWD/mdd link ${parent} ${child}
+    [ "$status" -eq 0 ]
+  done
+  # Check all files created
+  run $BATS_CWD/mdd ls -1
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 11 ]
+
+  # Check all links saved
+  for child in ${children[@]}; do
+    run grep "mdd-child: ${child}" $parent_path
+    [ "$status" -eq 0 ]
+  done
 }

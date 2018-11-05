@@ -288,7 +288,7 @@ func (p *Project) NewDocument(t *Template, title string) (Document, error) {
 	}
 
 	// Write metadata section
-	_, err = f.WriteString(fmt.Sprintf("%s\n%s", MetadataStart, MetadataEnd))
+	_, err = f.WriteString(fmt.Sprintf("\n%s\n%s\n", MetadataStart, MetadataEnd))
 	if err != nil {
 		return d, err
 	}
