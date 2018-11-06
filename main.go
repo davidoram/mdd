@@ -75,7 +75,7 @@ func main() {
 
 	editPtr := newCommand.Bool("e", false, "Open the new file in your $EDITOR")
 
-	linkPtr := lsCommand.Bool("l", false, "Display links")
+	longPtr := lsCommand.Bool("l", false, "List in long format shows children, and tags")
 	onePtr := lsCommand.Bool("1", false, "Only display filenames, one per line")
 
 	publishPtr := publishCommand.String("o", dir, "Directory to publish the site to, defaults .mdd/publish")
@@ -118,7 +118,7 @@ func main() {
 		err = doInfo(infoCommand, false)
 	case "ls":
 		lsCommand.Parse(os.Args[2:])
-		err = doLs(lsCommand, linkPtr, onePtr, false)
+		err = doLs(lsCommand, longPtr, onePtr, false)
 	case "link":
 		if len(os.Args) >= 3 {
 			linkCommand.Parse(os.Args[2:])
@@ -169,7 +169,7 @@ func main() {
 			case "info":
 				doInfo(infoCommand, true)
 			case "ls":
-				doLs(lsCommand, linkPtr, onePtr, true)
+				doLs(lsCommand, longPtr, onePtr, true)
 			case "link":
 				doLink(linkCommand, true)
 			case "unlink":
@@ -396,7 +396,7 @@ The arguments are:
 	return nil
 }
 
-func doLs(flags *flag.FlagSet, linkPtr *bool, onePtr *bool, displayHelp bool) error {
+func doLs(flags *flag.FlagSet, longPtr *bool, onePtr *bool, displayHelp bool) error {
 	helptext := `
 mdd ls lists all the documents created
 
@@ -426,15 +426,15 @@ The arguments are:
 		if *onePtr {
 			log.Printf("%s", d.BaseFilename())
 		} else {
-			if len(d.TagNames()) > 0 {
-				log.Printf("%-15s  %-30s %s", d.BaseFilename(), d.Title, d.TagNames())
-			} else {
-				log.Printf("%-15s  %-30s", d.BaseFilename(), d.Title)
+			tagStr := ""
+			for _, tag := range d.TagNames() {
+				tagStr = fmt.Sprintf("#%s %s", tag, tagStr)
 			}
+			log.Printf("%-15s  %-30s %s", d.BaseFilename(), d.Title, tagStr)
 		}
 
-		// Display links?
-		if *linkPtr {
+		// Display long listing?
+		if *longPtr {
 			for name := range d.Children {
 				log.Printf("  -> %-15s", name)
 			}

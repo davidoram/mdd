@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -113,6 +114,7 @@ func (d *Document) TagNames() []string {
 	for tag, _ := range d.Tags {
 		tags = append(tags, tag)
 	}
+	sort.Strings(tags)
 	return tags
 }
 
@@ -121,6 +123,7 @@ func (d *Document) ChildrenNames() []string {
 	for child, _ := range d.Children {
 		children = append(children, child)
 	}
+	sort.Strings(children)
 	return children
 }
 
