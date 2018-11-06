@@ -8,10 +8,6 @@ setup() {
   rm -rf ./.mdd
 }
 
-teardown() {
-  rm -rf ./tmp/.mdd
-  rm -rf ./.mdd
-}
 
 @test "mdd link missing both args" {
   run $BATS_CWD/mdd link

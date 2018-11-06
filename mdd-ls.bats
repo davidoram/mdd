@@ -3,6 +3,11 @@
 # Test script for 'mdd ls' command
 #
 
+setup() {
+  rm -rf ./tmp/.mdd
+  rm -rf ./.mdd
+}
+
 @test "mdd ls, no files" {
   rm -rf ./.mdd
   $BATS_CWD/mdd init
@@ -37,4 +42,17 @@
   run $BATS_CWD/mdd ls
   [ "$status" -eq 0 ]
   [ ${#lines[@]} -eq 10 ]
+}
+
+@test "mdd ls -l show children" {
+  rm -rf ./.mdd
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  $BATS_CWD/mdd link ${parent} ${child}
+  run $BATS_CWD/mdd ls -l
+  [ "$status" -eq 0 ]
+  [ $(expr "${lines[0]}" : "^${parent}.*") -ne 0 ]
+  [ $(expr "${lines[1]}" : ".*-> ${child}.*") -ne 0 ]
+  [ $(expr "${lines[2]}" : "^${child}.*") -ne 0 ]
 }
