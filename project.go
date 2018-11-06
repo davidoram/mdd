@@ -235,6 +235,14 @@ func ReadProject(homePath string, ignoreBrokenFiles bool) (Project, error) {
 	return p, err
 }
 
+func (p *Project) FindDocument(filename string) *Document {
+	for _, d := range p.Documents {
+		if d.BaseFilename() == filename {
+			return d
+		}
+	}
+	return nil
+}
 func (p *Project) readProjectDb() (map[string]string, error) {
 	db := map[string]string{}
 	dbPath := path.Join(p.HomePath, ProjectDbFile)

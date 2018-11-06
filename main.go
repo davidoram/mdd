@@ -430,13 +430,18 @@ The arguments are:
 			for _, tag := range d.TagNames() {
 				tagStr = fmt.Sprintf("#%s %s", tag, tagStr)
 			}
-			log.Printf("%-15s  %-30s %s", d.BaseFilename(), d.Title, tagStr)
+			log.Printf("%-15s       %-30s %s", d.BaseFilename(), d.Title, tagStr)
 		}
 
 		// Display long listing?
 		if *longPtr {
 			for name := range d.Children {
-				log.Printf("  -> %-15s", name)
+				d := p.FindDocument(name)
+				if d != nil {
+					log.Printf("  -> %-15s  %-30s", name, d.Title)
+				} else {
+					log.Printf("  -> %-15s", name)
+				}
 			}
 		}
 	}
