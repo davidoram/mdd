@@ -574,19 +574,25 @@ The arguments are:
 	}
 
 	var pdoc *Document
+	var cdoc *Document
 	for _, d := range p.Documents {
 		if pdoc == nil && d.BaseFilename() == parent {
 			pdoc = d
+		}
+		if cdoc == nil && d.BaseFilename() == child {
+			cdoc = d
 		}
 	}
 	if pdoc == nil {
 		return fmt.Errorf("Cant find parent '%s'", parent)
 	}
+	if cdoc == nil {
+		return fmt.Errorf("Cant find child '%s'", child)
+	}
 	if err = pdoc.RemoveChild(child); err == nil {
 		err = pdoc.WriteDocument()
 	}
-	return nil
-
+	return err
 }
 
 func doTag(flags *flag.FlagSet, displayHelp bool) error {
