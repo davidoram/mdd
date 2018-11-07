@@ -645,7 +645,7 @@ The arguments are:
 		}
 	}
 	if doc == nil {
-		return fmt.Errorf("Cant find parent '%s'", document)
+		return fmt.Errorf("Cant find document '%s'", document)
 	}
 	for _, t := range tags {
 		if err = doc.Tag(t); err != nil {

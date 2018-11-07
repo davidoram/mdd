@@ -63,7 +63,7 @@ func init() {
 	filenameRegex = regexp.MustCompile("^(\\w+)-(\\w+)-(\\d+)\\.md$")
 	metaStartRegex = regexp.MustCompile("^\\s*<!-- mdd\\s*$")
 	metaEndRegex = regexp.MustCompile("^\\s*-->\\s*$")
-	tagRegex = regexp.MustCompile("^[[:word:]]{3,20}$")
+	tagRegex = regexp.MustCompile("^[[:word:]-]{3,20}$")
 }
 
 func (d *Document) ForView() DocView {
@@ -98,7 +98,7 @@ func (d *Document) RemoveChild(childFilename string) error {
 
 func (d *Document) Tag(tag string) error {
 	if !tagRegex.MatchString(tag) {
-		return fmt.Errorf("Tags must be 3-20 chars long, made up of the following characters: '0-9A-Za-z_'")
+		return fmt.Errorf("Tags must be 3-20 chars long, made up of the following characters: '0-9A-Za-z_-'")
 	}
 	d.Tags[tag] = true
 	return nil
