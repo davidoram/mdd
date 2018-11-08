@@ -104,3 +104,13 @@ setup() {
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "Document '${file}' has no title" ]
 }
+
+@test "mdd verify, missing metadata block" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  file=$(basename ${file_path})
+  echo "# title" > $file_path
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${file}' missing metadata block" ]
+}

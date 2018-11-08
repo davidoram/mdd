@@ -193,7 +193,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 	if !(foundMetadataStart && foundMetadataEnd) {
-		return &d, fmt.Errorf("Document '%s' Missing metadata block", base)
+		return &d, fmt.Errorf("Document '%s' missing metadata block", base)
 	}
 	return &d, nil
 }
