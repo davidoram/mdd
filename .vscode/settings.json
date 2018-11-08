@@ -1,4 +1,4 @@
 {
-  "editor.acceptSuggestionOnEnter": "off",
+  "editor.acceptSuggestionOnEnter": "smart",
   "editor.detectIndentation": false
 }

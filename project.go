@@ -231,7 +231,7 @@ func ReadProject(homePath string, ignoreBrokenFiles bool) (Project, error) {
 				if !ignoreBrokenFiles {
 					return err
 				}
-				log.Printf("Ignoring template at path %q: %v\n", path, err)
+				// log.Printf("Ignoring template at path %q: %v\n", path, err)
 			} else {
 				p.Templates = append(p.Templates, tmpl)
 			}
@@ -256,7 +256,7 @@ func ReadProject(homePath string, ignoreBrokenFiles bool) (Project, error) {
 			if !ignoreBrokenFiles {
 				return err
 			}
-			log.Printf("Ignoring document at path %q: %v\n", path, err)
+			// log.Printf("Ignoring document at path %q: %v\n", path, err)
 		} else {
 			p.Documents = append(p.Documents, doc)
 		}

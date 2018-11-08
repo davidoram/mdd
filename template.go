@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
@@ -54,5 +55,10 @@ func ReadTemplate(path string) (Template, error) {
 			break
 		}
 	}
+
+	if t.Title == "" {
+		return t, fmt.Errorf("Template '%s', is missing a title", path)
+	}
+
 	return t, nil
 }
