@@ -59,7 +59,7 @@ var (
 )
 
 func init() {
-	titleRegex = regexp.MustCompile("^[# ]*([\\w-. ~]+) *$")
+	titleRegex = regexp.MustCompile("^# *([\\w-. ~]+) *$")
 	filenameRegex = regexp.MustCompile("^(\\w+)-(\\w+)-(\\d+)\\.md$")
 	metaStartRegex = regexp.MustCompile("^\\s*<!-- mdd\\s*$")
 	metaEndRegex = regexp.MustCompile("^\\s*-->\\s*$")
@@ -138,7 +138,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 	base := filepath.Base(path)
 	matches := filenameRegex.FindStringSubmatch(base)
 	if len(matches) != 4 {
-		return nil, fmt.Errorf("Document '%s', doesnt match mdd filename regex", base)
+		return nil, fmt.Errorf("Document '%s' doesnt match mdd filename regex", base)
 	}
 
 	for _, t := range p.Templates {
@@ -148,7 +148,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 	if d.Template == nil {
-		return nil, fmt.Errorf("Document '%s', no template matching shortcode '%s'", base, matches[0])
+		return nil, fmt.Errorf("Document '%s' no template matching shortcode '%s'", base, matches[1])
 	}
 
 	var err error
@@ -167,9 +167,8 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 			break
 		}
 	}
-
 	if d.Title == "" {
-		return nil, fmt.Errorf("Document '%s', has no title", base)
+		return nil, fmt.Errorf("Document '%s' has no title", base)
 	}
 
 	// Read the metadata
@@ -194,7 +193,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 	if !(foundMetadataStart && foundMetadataEnd) {
-		return &d, fmt.Errorf("Document '%s', Missing metadata block", base)
+		return &d, fmt.Errorf("Document '%s' Missing metadata block", base)
 	}
 	return &d, nil
 }

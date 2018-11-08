@@ -8,7 +8,6 @@ setup() {
   rm -rf ./.mdd
 }
 
-
 @test "mdd verify, missing project" {
   run $BATS_CWD/mdd verify
   [ "$status" -eq 1 ]
@@ -75,5 +74,33 @@ setup() {
   chmod -r $file_path
   run $BATS_CWD/mdd verify
   [ "$status" -eq 1 ]
-  [ "${lines[0]}" = "open .mdd/documents/adr-b7-0001.md: permission denied" ]
+  [ "${lines[0]}" = "open ${file_path}: permission denied" ]
+}
+
+@test "mdd verify, document doesnt match filename regex" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  mv $file_path ./.mdd/documents/not-a-valid-document-name.md
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document 'not-a-valid-document-name.md' doesnt match mdd filename regex" ]
+}
+
+@test "mdd verify, no template for document" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  mv $file_path ./.mdd/documents/xyz-b7-0001.md
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document 'xyz-b7-0001.md' no template matching shortcode 'xyz'" ]
+}
+
+@test "mdd verify, document has no title" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  file=$(basename ${file_path})
+  echo "Moo" > $file_path
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${file}' has no title" ]
 }
