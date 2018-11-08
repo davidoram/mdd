@@ -174,12 +174,46 @@ func (ctx *projectWalkCtx) projectWalkFn(path string, info os.FileInfo, err erro
 	return nil
 }
 
+func directoryExists(path string) bool {
+	if s, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	} else {
+		return err == nil && s.IsDir()
+	}
+}
+
+func fileExists(path string) bool {
+	if s, err := os.Stat(path); os.IsNotExist(err) {
+		return false
+	} else {
+		return err == nil && !s.IsDir()
+	}
+}
+
+func (p *Project) ProjectDbPath() string {
+	return path.Join(p.HomePath, ProjectDbFile)
+}
+
 func ReadProject(homePath string, ignoreBrokenFiles bool) (Project, error) {
 
 	p := Project{HomePath: homePath}
 	p.TemplatePath = path.Join(p.HomePath, "templates")
 	p.DocumentPath = path.Join(p.HomePath, "documents")
 	p.PublishPath = path.Join(p.HomePath, "publish")
+
+	// Check that essential directories exist
+	if !directoryExists(p.TemplatePath) {
+		return p, fmt.Errorf("Directory '%s' doesnt exist", p.TemplatePath)
+	}
+	if !directoryExists(p.DocumentPath) {
+		return p, fmt.Errorf("Directory '%s' doesnt exist", p.DocumentPath)
+	}
+	if !directoryExists(p.PublishPath) {
+		return p, fmt.Errorf("Directory '%s' doesnt exist", p.PublishPath)
+	}
+	if !fileExists(p.ProjectDbPath()) {
+		return p, fmt.Errorf("File '%s' doesnt exist", p.ProjectDbPath())
+	}
 
 	// Read the templates
 	err := filepath.Walk(p.TemplatePath, func(path string, info os.FileInfo, err error) error {
@@ -245,7 +279,7 @@ func (p *Project) FindDocument(filename string) *Document {
 }
 func (p *Project) readProjectDb() (map[string]string, error) {
 	db := map[string]string{}
-	dbPath := path.Join(p.HomePath, ProjectDbFile)
+	dbPath := p.ProjectDbPath()
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return db, nil
 	}
@@ -273,7 +307,7 @@ func (p *Project) readProjectDb() (map[string]string, error) {
 }
 
 func (p *Project) writeProjectDb(db map[string]string) error {
-	dbPath := path.Join(p.HomePath, ProjectDbFile)
+	dbPath := p.ProjectDbPath()
 	f, err := os.Create(dbPath)
 	if err != nil {
 		return err

@@ -138,7 +138,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 	base := filepath.Base(path)
 	matches := filenameRegex.FindStringSubmatch(base)
 	if len(matches) != 4 {
-		return nil, fmt.Errorf("Filename '%s', doesnt match regex", base)
+		return nil, fmt.Errorf("Document '%s', doesnt match mdd filename regex", base)
 	}
 
 	for _, t := range p.Templates {
@@ -148,7 +148,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 	if d.Template == nil {
-		return nil, fmt.Errorf("No template for shortcode '%s'", matches[0])
+		return nil, fmt.Errorf("Document '%s', no template matching shortcode '%s'", base, matches[0])
 	}
 
 	var err error
@@ -166,6 +166,10 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 			d.Title = matches[1]
 			break
 		}
+	}
+
+	if d.Title == "" {
+		return nil, fmt.Errorf("Document '%s', has no title", base)
 	}
 
 	// Read the metadata
@@ -190,7 +194,7 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		}
 	}
 	if !(foundMetadataStart && foundMetadataEnd) {
-		return &d, fmt.Errorf("Missing metadata")
+		return &d, fmt.Errorf("Document '%s', Missing metadata block", base)
 	}
 	return &d, nil
 }

@@ -741,40 +741,61 @@ The arguments are:
 		return fmt.Errorf("Error parsing arguments")
 	}
 
+	errors := []string{}
 	// Note: Open with errors returned
 	p, err := FindProjectBelowCwd(false)
 	if err != nil {
-		fmt.Printf("Project has error '%s'\n", err)
+		errors = append(errors, err.Error())
 	}
 	// .. now open ignoring minor errors, so we can do more checking
 	p, err = FindProjectBelowCwd(true)
 	if err != nil {
-		return err
-	}
-	errors := 0
-	for _, d := range p.Documents {
-		// Check each child pointer is valid
-		for name := range d.Children {
-			found := false
-			for _, c := range p.Documents {
-				if c.BaseFilename() == name {
-					found = true
-					break
+		errors = append(errors, err.Error())
+	} else {
+		for _, d := range p.Documents {
+			// Check each child pointer is valid
+			for name := range d.Children {
+				found := false
+				for _, c := range p.Documents {
+					if c.BaseFilename() == name {
+						found = true
+						break
+					}
 				}
-			}
-			if !found {
-				errors++
-				fmt.Printf("'%s' has child '%s' which doesnt exist\n", d.BaseFilename(), name)
+				if !found {
+					err = fmt.Errorf("Document '%s' has child '%s' which doesnt exist\n", d.BaseFilename(), name)
+					errors = append(errors, err.Error())
+				}
 			}
 		}
 	}
+	// We can get duplicates because we open the project twice
+	errors = uniqueElements(errors)
 
-	if errors != 0 {
-		return fmt.Errorf("Found %d errors", errors)
+	if len(errors) > 0 {
+		for _, e := range errors {
+			log.Printf(e)
+		}
+		return fmt.Errorf("Total %d errors found", len(errors))
 	}
 	return nil
 }
 
+func uniqueElements(s []string) []string {
+	unique := make(map[string]bool, len(s))
+	us := make([]string, len(unique))
+	for _, elem := range s {
+		if len(elem) != 0 {
+			if !unique[elem] {
+				us = append(us, elem)
+				unique[elem] = true
+			}
+		}
+	}
+
+	return us
+
+}
 func doPublish(flags *flag.FlagSet, dirPtr *string, displayHelp bool) error {
 	helptext := `
 mdd publish creates a static website for the mdd repository
