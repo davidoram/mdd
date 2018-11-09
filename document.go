@@ -244,13 +244,13 @@ func (d *Document) parseMetadata(line string) error {
 
 	meta := strings.Split(line, MetadataSeparator)
 	if len(meta) != 2 {
-		return fmt.Errorf("Expected 2 values, found %d from metadata '%s'", len(meta), line)
+		return fmt.Errorf("Document '%s' expected 2 values, found %d from metadata '%s'", d.BaseFilename(), len(meta), line)
 	}
 
 	key := strings.TrimSpace(meta[0])
 	value := strings.TrimSpace(meta[1])
 	if value == "" {
-		return fmt.Errorf("metadata value for key '%s' is empty", key)
+		return fmt.Errorf("Document '%s' metadata value for key '%s' is empty", d.BaseFilename(), key)
 	}
 	switch key {
 	case MetadataChild:
@@ -258,7 +258,7 @@ func (d *Document) parseMetadata(line string) error {
 	case MetadataTag:
 		d.Tags[value] = true
 	default:
-		return fmt.Errorf("Unrecognised metadata tag '%s'", key)
+		return fmt.Errorf("Document '%s' unrecognised metadata tag '%s'", d.BaseFilename(), key)
 	}
 	return nil
 }

@@ -114,3 +114,42 @@ setup() {
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "Document '${file}' missing metadata block" ]
 }
+
+@test "mdd verify, incomplete metadata block, invalid entry" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  file=$(basename ${file_path})
+  echo "# title" > $file_path
+  echo "<!-- mdd" >> $file_path
+  echo "The end" >> $file_path
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${file}' expected 2 values, found 1 from metadata 'The end'" ]
+}
+
+@test "mdd verify, invalid metadata tag" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  file=$(basename ${file_path})
+  echo "# title" > $file_path
+  echo "<!-- mdd" >> $file_path
+  echo "mdd-unknown: moo" >> $file_path
+  echo "-->" >> $file_path
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${file}' unrecognised metadata tag 'mdd-unknown'" ]
+}
+
+
+@test "mdd verify, invalid link" {
+  $BATS_CWD/mdd init
+  parent_path=$($BATS_CWD/mdd new adr)
+  parent=$(basename ${parent_path})
+  child_path=$($BATS_CWD/mdd new adr)
+  child=$(basename ${child_path})
+  $BATS_CWD/mdd link ${parent} ${child}
+  rm ${child_path}
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${parent}' has child '${child}' which doesnt exist" ]
+}
