@@ -51,7 +51,8 @@ setup() {
     $BATS_CWD/mdd new adr
   done
 
-  # Count documents created
+  # Count documents created, note DONT do this directly in a 'run' command
+  # it causes issues
   file_count=$( ls ./.mdd/documents/* | wc -l)
   [ $(expr "${file_count}" : "^ *100") -ne 0 ]
 }
