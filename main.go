@@ -25,6 +25,8 @@ The commands are:
 	init        initialise a mdd repository
 	templates   list the templates available for use
 	new         add a new document based on a template
+	rm          remove a document
+	edit        edit a document
 	info        display project information
 	ls          list documents created
 	link        link a parent and child document
@@ -50,6 +52,7 @@ func main() {
 	tmplCommand := flag.NewFlagSet("template", flag.ExitOnError)
 	newCommand := flag.NewFlagSet("new", flag.ExitOnError)
 	editCommand := flag.NewFlagSet("edit", flag.ExitOnError)
+	rmCommand := flag.NewFlagSet("rm", flag.ExitOnError)
 	infoCommand := flag.NewFlagSet("info", flag.ExitOnError)
 	lsCommand := flag.NewFlagSet("ls", flag.ExitOnError)
 	linkCommand := flag.NewFlagSet("link", flag.ExitOnError)
@@ -113,6 +116,13 @@ func main() {
 		} else {
 			err = fmt.Errorf("Cannot parse command line. Try 'mdd help edit'")
 		}
+	case "rm":
+		if len(os.Args) >= 3 {
+			rmCommand.Parse(os.Args[3:])
+			err = doRm(rmCommand, false)
+		} else {
+			err = fmt.Errorf("Cannot parse command line. Try 'mdd help rm'")
+		}
 	case "info":
 		infoCommand.Parse(os.Args[2:])
 		err = doInfo(infoCommand, false)
@@ -166,6 +176,8 @@ func main() {
 				doNew(newCommand, editPtr, true)
 			case "edit":
 				doEdit(editCommand, true)
+			case "rm":
+				doRm(rmCommand, true)
 			case "info":
 				doInfo(infoCommand, true)
 			case "ls":
@@ -322,7 +334,7 @@ The arguments are:
 
 func doEdit(flags *flag.FlagSet, displayHelp bool) error {
 	helptext := `
-mdd edit opens an edixiting document in your editor
+mdd edit opens a document in your editor
 
 Usage:
 
@@ -359,6 +371,51 @@ The arguments are:
 		}
 	}
 	return fmt.Errorf("No such file: '%s'", filename)
+}
+
+func doRm(flags *flag.FlagSet, displayHelp bool) error {
+	helptext := `
+mdd rm deletes documents, and cleans up any links to them
+
+Usage:
+
+	mdd rm document...
+
+The arguments are:
+`
+	// Asked for help?
+	if displayHelp {
+		fmt.Println(helptext)
+		flags.PrintDefaults()
+		return nil
+	}
+
+	// FlagSet.Parse() will evaluate to false if no flags were parsed
+	if !flags.Parsed() {
+		return fmt.Errorf("Error parsing arguments")
+	}
+
+	// Missing template shortcut
+	if len(os.Args[2:]) == 0 {
+		return fmt.Errorf("Missing 'filename' argument")
+	}
+
+	p, err := FindProjectBelowCwd(true)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range os.Args[2:] {
+		d := p.FindDocument(file)
+		if d == nil {
+			return fmt.Errorf("No such file: '%s'", file)
+		}
+		err = p.Delete(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func doInfo(flags *flag.FlagSet, displayHelp bool) error {

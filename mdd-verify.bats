@@ -140,6 +140,18 @@ setup() {
   [ "${lines[0]}" = "Document '${file}' unrecognised metadata tag 'mdd-unknown'" ]
 }
 
+@test "mdd verify, invalid metadata tag - key without value" {
+  $BATS_CWD/mdd init
+  file_path=$($BATS_CWD/mdd new adr)
+  file=$(basename ${file_path})
+  echo "# title" > $file_path
+  echo "<!-- mdd" >> $file_path
+  echo "mdd-empty:" >> $file_path
+  echo "-->" >> $file_path
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Document '${file}' metadata value for key 'mdd-empty' is empty" ]
+}
 
 @test "mdd verify, invalid link" {
   $BATS_CWD/mdd init
@@ -153,3 +165,4 @@ setup() {
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "Document '${parent}' has child '${child}' which doesnt exist" ]
 }
+

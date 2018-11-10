@@ -26,6 +26,18 @@
   [ "${lines[0]}" = "mdd new creates a new document from a template" ]
 }
 
+@test "mdd help edit" {
+  run $BATS_CWD/mdd help edit
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "mdd edit opens a document in your editor" ]
+}
+
+@test "mdd help rm" {
+  run $BATS_CWD/mdd help rm
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "mdd rm deletes documents, and cleans up any links to them" ]
+}
+
 @test "mdd help ls" {
   run $BATS_CWD/mdd help ls
   [ "$status" -eq 0 ]

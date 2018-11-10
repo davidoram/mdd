@@ -277,6 +277,46 @@ func (p *Project) FindDocument(filename string) *Document {
 	}
 	return nil
 }
+
+func (p *Project) Delete(filename string) error {
+
+	var doc *Document
+	var idx int
+
+	// Find the document & its index
+	for i, d := range p.Documents {
+		if d.BaseFilename() == filename {
+			doc = d
+			idx = i
+			break
+		}
+	}
+
+	if doc == nil {
+		return fmt.Errorf("Cant find file: '%s'", filename)
+	}
+
+	for _, d := range p.Documents {
+		if d.HasChild(doc) {
+			if err := d.RemoveChild(doc.BaseFilename()); err != nil {
+				return err
+			}
+			if err := d.WriteDocument(); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := doc.Delete(); err != nil {
+		return err
+	}
+
+	// Remove the document from the set
+	p.Documents = append(p.Documents[:idx], p.Documents[idx+1:]...)
+
+	return nil
+}
+
 func (p *Project) readProjectDb() (map[string]string, error) {
 	db := map[string]string{}
 	dbPath := p.ProjectDbPath()

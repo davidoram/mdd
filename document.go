@@ -96,6 +96,11 @@ func (d *Document) RemoveChild(childFilename string) error {
 	return nil
 }
 
+func (d *Document) HasChild(child *Document) bool {
+	// log.Printf("%s has child %s == %t", d.BaseFilename(), child.BaseFilename(), d.Children[child.BaseFilename()])
+	return d.Children[child.BaseFilename()] == true
+}
+
 func (d *Document) Tag(tag string) error {
 	if !tagRegex.MatchString(tag) {
 		return fmt.Errorf("Tags must be 3-20 chars long, made up of the following characters: '0-9A-Za-z_-'")
@@ -196,6 +201,10 @@ func (p *Project) ReadDocument(path string) (*Document, error) {
 		return &d, fmt.Errorf("Document '%s' missing metadata block", base)
 	}
 	return &d, nil
+}
+
+func (d *Document) Delete() error {
+	return os.Remove(d.Filename)
 }
 
 func (d *Document) WriteDocument() error {
