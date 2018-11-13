@@ -1,5 +1,11 @@
 # Inspection test
 
+The Inspection test documents a manual inspection test to cover a specific requirement. It links that requirements and the inspection test scripts that cover them.
+
+**When you create a new document, delete from this line to the top of the document, and alter the example sections below to suit your situation.**
+
+# TODO Place your Inspection test title here eg: 'Test login flow'
+
 ## Login happy path
 
 Steps
