@@ -19,5 +19,5 @@
   [ "${lines[2]}" = "  itst: Inspection test" ]
   [ "${lines[3]}" = "   mtg: Meeting" ]
   [ "${lines[4]}" = "   nfr: Non Functional Requirement" ]
-  [ "${lines[5]}" = "   req: Requirement" ]
+  [ "${lines[5]}" = "   req: Functional Requirement" ]
 }
