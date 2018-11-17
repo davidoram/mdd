@@ -59,3 +59,18 @@ setup() {
   [ $(expr "${lines[1]}" : ".*-> ${child}.*") -ne 0 ]
   [ $(expr "${lines[2]}" : "^${child}.*") -ne 0 ]
 }
+
+@test "mdd ls -l, circular link" {
+  rm -rf ./.mdd
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  $BATS_CWD/mdd link ${parent} ${child}
+  $BATS_CWD/mdd link ${child} ${parent}
+  run $BATS_CWD/mdd ls -l
+  [ "$status" -eq 0 ]
+  [ $(expr "${lines[0]}" : "^${parent}.*") -ne 0 ]
+  [ $(expr "${lines[1]}" : ".*-> ${child}.*") -ne 0 ]
+  [ $(expr "${lines[2]}" : "^${child}.*") -ne 0 ]
+  [ $(expr "${lines[3]}" : ".*-> ${parent}.*") -ne 0 ]
+}

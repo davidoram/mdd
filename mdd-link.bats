@@ -68,6 +68,18 @@ setup() {
   [ "${lines[0]}" = "${parent} -> ${child}" ]
 }
 
+@test "mdd link, valid, circular" {
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  run $BATS_CWD/mdd link ${parent} ${child}
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${parent} -> ${child}" ]
+  run $BATS_CWD/mdd link ${child} ${parent}
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${child} -> ${parent}" ]
+}
+
 @test "mdd link, updates metadata" {
   $BATS_CWD/mdd init
   parent_path=$($BATS_CWD/mdd new adr)
