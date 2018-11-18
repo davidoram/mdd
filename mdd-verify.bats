@@ -166,3 +166,13 @@ setup() {
   [ "${lines[0]}" = "Document '${parent}' has child '${child}' which doesnt exist" ]
 }
 
+@test "mdd verify, circular link" {
+  rm -rf ./.mdd
+  $BATS_CWD/mdd init
+  parent=$(basename $($BATS_CWD/mdd new adr))
+  child=$(basename $($BATS_CWD/mdd new adr))
+  $BATS_CWD/mdd link ${parent} ${child}
+  $BATS_CWD/mdd link ${child} ${parent}
+  run $BATS_CWD/mdd verify
+  [ "$status" -eq 0 ]
+}

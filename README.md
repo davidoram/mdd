@@ -34,8 +34,6 @@ To install run:
 sudo make install
 ```
 
-**TODO** Add precompiled executables for OS X, Windows, Linux
- 
 # Architecture
 
 `mdd` is a single executable file, that manages all functions of the system. The templates are compiled into the executable.
@@ -107,7 +105,7 @@ $ mdd templates
    req: Functional Requirement
 ```
 
-# Create a document
+## Create a document
  
 Create a new document, specifying the template and document title:
 
@@ -133,6 +131,7 @@ $ mdd new itst "Testing user login"
 .mdd/documents/itst-b7-0002.md
 ```
 
+## List documents
 
 To list documents with their title
 
@@ -142,6 +141,7 @@ itst-b7-0002.md       Testing user login
 req-b7-0001.md        User login
 ```
  
+## Linking documents
 
 Now we want to link the requirement to the test document to show they are related. We do that as follows: 
 
@@ -151,6 +151,8 @@ req-b7-0001.md -> itst-b7-0002.md
 ```
 
 Note: If we wanted to unlink the documents run the same command replacing `link` with `unlink`.
+
+## Tags
 
 Tags are added and removed from documents using the mdd `tag` and `untag` commands eg:
 
@@ -169,6 +171,8 @@ req-b7-0001.md        User login                     #security
 
 ```
 
+## Verification
+
 Verify the structure of the mdd database, use the `verify` command which will check:
 
 -   Every links points to a valid document
@@ -183,20 +187,29 @@ echo $?
 0
 ```
 
+## Publish
 
 To publish the database as html run:
  
 ```
 $ mdd publish
+# Open in a browser
 $ open ./.mdd/publish/index.html
 ```
 
 # Resources:
 
--   <https://stackoverflow.com/questions/44215896/markdown-metadata-format>
--   <https://github.com/jacebrowning/doorstop>
--   <https://github.com/rjeczalik/fs>
--   <https://github.com/russross/blackfriday>
+- https://stackoverflow.com/questions/44215896/markdown-metadata-format>
+- https://github.com/jacebrowning/doorstop
+- https://github.com/rjeczalik/fs
+- https://github.com/russross/blackfriday
 - https://blog.rapid7.com/2016/08/04/build-a-simple-cli-tool-with-golang/
 - http://thinkrelevance.com/blog/2011/11/15/documenting-architecture-decisions
 - https://github.com/sstephenson/bats
+
+# Roadmap
+
+- Add precompiled executables for OS X, Windows, Linux
+- Change the backend to use sqlite in memory db
+- Add tab completion for template & document names from the command line
+ 
